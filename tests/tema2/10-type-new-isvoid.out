@@ -1,0 +1,3 @@
+"10-type-new-isvoid.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+"main.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+Compilation halted

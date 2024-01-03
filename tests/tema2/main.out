@@ -1,0 +1,10 @@
+"main.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+Compilation halted
+Exception in thread "main" java.io.FileNotFoundException: tests\tema2\main.ref (The system cannot find the file specified)
+	at java.base/java.io.FileInputStream.open0(Native Method)
+	at java.base/java.io.FileInputStream.open(FileInputStream.java:213)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:152)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:106)
+	at java.base/java.io.FileReader.<init>(FileReader.java:60)
+	at cool.tester.Tester1.compare(Tester1.java:54)
+	at cool.tester.Tester1.main(Tester1.java:36)
