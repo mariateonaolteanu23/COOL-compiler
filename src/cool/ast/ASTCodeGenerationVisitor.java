@@ -183,12 +183,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         classObjTabHt.put(className, classObjTabHt.size());
 
         ///mai tb explorate metodele din clase aici?
-        int cntAttributes = classDef.features.size(); ///?? asta e vectorul cu atribute? doar o parte din el e..
+        int cntAttributes = 0;
+        for (Feature f: classDef.features) if (f instanceof Attribute) cntAttributes++;
 
         classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
                 .add("className", className)
                 .add("classTag", classObjTabHt.get(className).toString())
-                .add("size", ((Integer) (3 + cntAttributes)).toString()) ///nu e asa.
+                .add("size", ((Integer) (3 + cntAttributes)).toString())
                 .add("features", "")
         );
 
