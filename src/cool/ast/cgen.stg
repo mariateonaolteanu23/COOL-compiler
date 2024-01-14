@@ -31,21 +31,9 @@ _bool_tag:
 <constBool> #list de boolConstEntry.
 
 class_nameTab:
-<className> #lista de classNameEntry.
+<className> #lista de classNameEntry. de fapt pointer catre str_const care retine numele clasei.
 
-class_objTab:
-    .word Object_protObj   #prototipul clasei.
-    .word Object_init      #functia de initializare a unei clase.
-    .word IO_protObj
-    .word IO_init
-    .word Int_protObj
-    .word Int_init
-    .word String_protObj
-    .word String_init
-    .word Bool_protObj
-    .word Bool_init
-    .word Main_protObj
-    .word Main_init
+class_objTab: # prototipul clasei. functia de initializare a unei clase.
 <classObjTab> #lista de classObjTabEntry.
 
 <classProtObj> #prototipul unei clase. lista de classProtObjEntry.
@@ -94,8 +82,8 @@ bool_const<index>:
 
 
 
-classNameEntry(className) ::= <<
-    .word <className> #de fapt pointer catre str_const care retine numele clasei.
+classNameEntry(classNameIndex) ::= <<
+    .word str_const<classNameIndex>
 >>
 
 classObjTabEntry(className) ::= <<

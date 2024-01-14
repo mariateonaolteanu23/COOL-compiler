@@ -4,6 +4,7 @@ import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.TreeSet;
 
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
@@ -17,7 +18,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     ST constBoolList;
     ST classNameList;
+
     ST classObjTabList;
+    HashMap<String, Integer> classObjTabHt; ///nume clasa -> a cata intrare in class_objTab e a clasei.
+
     ST classProtObjList;
     ST classDispTabList;
     ST classInitSignatureList;
@@ -169,6 +173,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     public ST visit(ClassDef classDef) {
         addConstString(classDef.token.getText());
 
+        classNameList.add("e", templates.getInstanceOf("classNameEntry")
+                .add("classNameIndex", constStringHt.get(classDef.token.getText()).toString()));
+
+        classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
+                .add("className", classDef.token.getText()));
+        classObjTabHt.put(classDef.token.getText(), classObjTabHt.size());
+
         return null;
     }
 
@@ -184,7 +195,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
         constBoolList = templates.getInstanceOf("sequence");
         classNameList = templates.getInstanceOf("sequence");
+
         classObjTabList = templates.getInstanceOf("sequence");
+        classObjTabHt = new HashMap<>();
+
         classProtObjList = templates.getInstanceOf("sequence");
         classDispTabList = templates.getInstanceOf("sequence");
         classInitSignatureList = templates.getInstanceOf("sequence");
@@ -197,18 +211,24 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("constBool", constBoolList);
 
         addConstString("");
-        addConstString("Object");
-        addConstString("IO");
-        addConstString("String");
-        addConstString("Int");
-        addConstString("Bool");
-        ///TODO add restul de nume de clase.
+        for (String baseClassName: List.of("Object", "IO", "String", "Int", "Bool")) {
+            addConstString(baseClassName);
+
+            classNameList.add("e", templates.getInstanceOf("classNameEntry")
+                    .add("classNameIndex", constStringHt.get(baseClassName).toString()));
+
+            classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
+                    .add("className", baseClassName));
+            classObjTabHt.put(baseClassName, classObjTabHt.size());
+        }
 
         for (ASTNode cd: program.stmts) {
             visit((ClassDef) cd);
         }
 
         programST.add("constString", constStringList);
+        programST.add("className", classNameList);
+        programST.add("classObjTab", classObjTabList);
 
         for (Integer k: constIntSet) { ///TODO constante negative?
             constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
@@ -219,6 +239,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     }
 
     private void addConstString(String s) {
+        if (constStringHt.containsKey(s)) return;
+
         int labelSize = (s.length()+1 + 3) / 4 + 4;
 
         constStringList.add("e", templates.getInstanceOf("constStringEntry")
