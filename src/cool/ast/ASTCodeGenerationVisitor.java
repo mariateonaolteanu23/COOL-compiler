@@ -23,6 +23,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     HashMap<String, Integer> classObjTabHt; ///nume clasa -> a cata intrare in class_objTab e a clasei.
 
     ST classProtObjList;
+
     ST classDispTabList;
     ST classInitSignatureList;
     ST functionSignatureList;
@@ -171,14 +172,25 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     @Override
     public ST visit(ClassDef classDef) {
-        addConstString(classDef.token.getText());
+        String className = classDef.token.getText();
+        addConstString(className);
 
         classNameList.add("e", templates.getInstanceOf("classNameEntry")
-                .add("classNameIndex", constStringHt.get(classDef.token.getText()).toString()));
+                .add("classNameIndex", constStringHt.get(className).toString()));
 
         classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
-                .add("className", classDef.token.getText()));
-        classObjTabHt.put(classDef.token.getText(), classObjTabHt.size());
+                .add("className", className));
+        classObjTabHt.put(className, classObjTabHt.size());
+
+        ///mai tb explorate metodele din clase aici?
+        int cntAttributes = classDef.features.size(); ///?? asta e vectorul cu atribute? doar o parte din el e..
+
+        classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
+                .add("className", className)
+                .add("classTag", classObjTabHt.get(className).toString())
+                .add("size", ((Integer) (3 + cntAttributes)).toString()) ///nu e asa.
+                .add("features", "")
+        );
 
         return null;
     }
@@ -220,6 +232,25 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
             classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
                     .add("className", baseClassName));
             classObjTabHt.put(baseClassName, classObjTabHt.size());
+
+            ///folosesc classObjTabHt si pentru <class>_protObj.
+            int size = 0;
+            String features = "";
+
+            switch (baseClassName) {
+                case "Object" -> size = 3;
+                case "IO" -> size = 3;
+                case "String" -> { size = 5; features = ".word int_const0\n.asciiz \"\"\n.align 2\n"; }
+                case "Int", "Bool" -> { size = 4; features = ".word 0\n"; }
+                default -> {}
+            }
+
+            classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
+                    .add("className", baseClassName)
+                    .add("classTag", classObjTabHt.get(baseClassName).toString())
+                    .add("size", ((Integer) size).toString())
+                    .add("features", features)
+            );
         }
 
         for (ASTNode cd: program.stmts) {
@@ -229,6 +260,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("constString", constStringList);
         programST.add("className", classNameList);
         programST.add("classObjTab", classObjTabList);
+        programST.add("classProtObj", classProtObjList);
 
         for (Integer k: constIntSet) { ///TODO constante negative?
             constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
