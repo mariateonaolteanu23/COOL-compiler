@@ -2,3 +2,6 @@
 .idea/vcs.xml
 *.out
 *.out
+
+out/*
+tests/*

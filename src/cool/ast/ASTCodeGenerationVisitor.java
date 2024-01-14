@@ -170,6 +170,15 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("textFuncs", funcSection);
         programST.add("textMain", mainSection);
 
+        var seq = templates.getInstanceOf("sequence"); // pentru fiecare lista de ST-uri
+        seq.add("e", templates.getInstanceOf("classObjTabEntry").add("name", "A"));
+        seq.add("e", templates.getInstanceOf("classObjTabEntry").add("name", "B"));
+
+        programST.add("classTabEntries", seq);
+
+//        programST.add("classTabEntries", seq.add("e", templates.getInstanceOf("class_objTabEntry").add("name", "A")));
+//        programST.add("classTabEntries", templates.getInstanceOf("class_objTabEntry").add("name", "B"));
+
         return programST;
     }
 }

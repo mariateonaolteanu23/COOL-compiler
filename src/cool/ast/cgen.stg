@@ -1,10 +1,49 @@
 sequence(e) ::= "<e; separator=\"\n\">"
 sequenceSpaced(e) ::= "<e; separator=\"\n\n\">"
 
-program(data, textFuncs, textMain) ::= <<
+program(data, classNames, textFuncs, textMain, classNames, classTabEntries, classProtObj) ::= <<
 .data
+.align 2
+.globl class_nameTab
+.globl Int_protObj
+.globl String_protObj
+.globl bool_const0
+.globl bool_const1
+.globl Main_protObj
+.globl _int_tag
+.globl _string_tag
+.globl _bool_tag
+
+_int_tag:
+    .word 2
+_string_tag:
+    .word 3
+_bool_tag:
+    .word 4
+
+class_nameTab: #pointeri catre str_const? care retin numele claselor.
+<classNames>
+class_objTab:
+    .word Object_protObj   #prototipul clasei.
+    .word Object_init      #functia de initializare a unei clase.
+    .word IO_protObj
+    .word IO_init
+    .word Int_protObj
+    .word Int_init
+    .word String_protObj
+    .word String_init
+    .word Bool_protObj
+    .word Bool_init
+    .word Main_protObj
+    .word Main_init
+<classTabEntries>
+<classProtObj>
+
+
 <data>
 
+heap_start:
+    .word 0
 .text
 <textFuncs>
 
@@ -12,4 +51,45 @@ main:
 <textMain>
 li $v0, 10
 syscall		#exit
+>>
+
+
+classObjTabEntry(name) ::= <<
+    .word <name>_protObj
+    .word <name>_init
+>>
+
+classProtObj(name, tag, size, features) ::= <<
+    <name>_protObj
+    .word <tag>
+    .word <size>
+    .word <name>_dispTable
+<features>
+>>
+
+classDispTab(name, functions) ::= <<
+    <name>_dispTab:
+<functions>
+ >>
+
+functionDispTabEntry(class, name) ::= <<
+    .word <class>.<name>
+>>
+
+classInitEntry(class) ::= <<
+   .globl <class>_init
+>>
+
+functionInitEntry(class, name) ::= <<
+   .globl <class>.<name>
+>>
+
+classInit(class, body) ::= <<
+   <class>_init:
+<body>
+>>
+
+functionInit(class, name, body) ::= <<
+    <class>.<name>:
+ <body>
 >>
