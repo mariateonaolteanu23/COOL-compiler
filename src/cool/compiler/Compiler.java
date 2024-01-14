@@ -1,9 +1,6 @@
 package cool.compiler;
 
-import cool.ast.ASTConstructionVisitor;
-import cool.ast.ASTDefinitionPassVisitor;
-import cool.ast.ASTIntermediatePassVisitor;
-import cool.ast.ASTResolutionPassVisitor;
+import cool.ast.*;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
@@ -144,5 +141,10 @@ public class Compiler {
             System.err.println("Compilation halted");
             return;
         }
+
+        // Generarea de cod
+        var codeGenVisitor = new ASTCodeGenerationVisitor();
+        var t = ast.accept(codeGenVisitor);
+        System.out.println(t.render());
     }
 }
