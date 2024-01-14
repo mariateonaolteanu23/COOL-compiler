@@ -20,9 +20,12 @@
 CLASSPATH=./out/production/Tema2/
 
 passed=0
-for source_file in ./tests/tema3/*.cl; do
+for source_file in ./tests/tema3/01*.cl; do
 	echo -e "\n`basename $source_file`"
-	java -cp $CLASSPATH cool.compiler.Compiler $source_file > ./tests/tema3/`basename $source_file .cl`.s
+
+	#java -cp $CLASSPATH cool.compiler.Compiler $source_file > ./tests/tema3/`basename $source_file .cl`.s
+    java -cp "antlr-4.13.0-complete.jar:./out/production/Tema2/" cool.compiler.Compiler $source_file > ./tests/tema3/`basename $source_file .cl`.s
+
 	if [ "$source_file" = "./tests/tema3/32-big.cl" ]; then
 		echo 5 | spim -exception_file trap.handler.nogc -file tests/tema3/`basename $source_file .cl`.s > tests/tema3/`basename $source_file .cl`.out
 	else

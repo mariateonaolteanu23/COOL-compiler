@@ -4,7 +4,7 @@ import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
-    static STGroupFile templates = new STGroupFile("cgen.stg");
+    static STGroupFile templates = new STGroupFile("./src/cool/ast/cgen.stg");
 
     ST mainSection;	// filled directly (through visitor returns)
     ST dataSection; // filled collaterally ("global" access)
@@ -157,6 +157,19 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     @Override
     public ST visit(Program program) {
-        return null;
+        dataSection = templates.getInstanceOf("sequenceSpaced");
+        funcSection = templates.getInstanceOf("sequenceSpaced");
+        mainSection = templates.getInstanceOf("sequence");
+
+//        for (ASTNode e: program.stmts)
+//            mainSection.add("e", e.accept(this));
+
+        //assembly-ing it all together. HA! get it?
+        var programST = templates.getInstanceOf("program");
+        programST.add("data", dataSection);
+        programST.add("textFuncs", funcSection);
+        programST.add("textMain", mainSection);
+
+        return programST;
     }
 }
