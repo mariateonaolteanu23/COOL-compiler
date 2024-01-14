@@ -1,7 +1,7 @@
 sequence(e) ::= "<e; separator=\"\n\">"
 sequenceSpaced(e) ::= "<e; separator=\"\n\n\">"
 
-program(constStr, constInt, constBool,
+program(constString, constInt, constBool,
         className, classObjTab, classProtObj, classDispTab,
         classInitSignature, functionSignature, classInitBody, functionInitBody) ::= <<
 .data
@@ -67,7 +67,7 @@ heap_start:
 
 
 constStringEntry(index, size, indexLengthConstInt, value) ::= <<
-int_const<index>:
+str_const<index>:
     .word 3
     .word <size>
     .word String_dispTab

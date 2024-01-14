@@ -3,11 +3,18 @@ package cool.ast;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
+import java.util.HashMap;
+import java.util.TreeSet;
+
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     static STGroupFile templates = new STGroupFile("./src/cool/ast/cgen.stg");
 
     ST constStringList;
+    HashMap<String, Integer> constStringHt; ///const string -> ce index am folosit pentru el.
+
     ST constIntList;
+    TreeSet<Integer> constIntSet; ///pentru intregi folosesc identitate ca mapare.
+
     ST constBoolList;
     ST classNameList;
     ST classObjTabList;
@@ -160,6 +167,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     @Override
     public ST visit(ClassDef classDef) {
+        addConstString(classDef.token.getText());
+
         return null;
     }
 
@@ -168,7 +177,11 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         ST programST = templates.getInstanceOf("program");
 
         constStringList = templates.getInstanceOf("sequence");
+        constStringHt = new HashMap<>();
+
         constIntList = templates.getInstanceOf("sequence");
+        constIntSet = new TreeSet<>();
+
         constBoolList = templates.getInstanceOf("sequence");
         classNameList = templates.getInstanceOf("sequence");
         classObjTabList = templates.getInstanceOf("sequence");
@@ -181,9 +194,41 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
         constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "0").add("value", "0"));
         constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "1").add("value", "1"));
-
         programST.add("constBool", constBoolList);
 
+        addConstString("");
+        addConstString("Object");
+        addConstString("IO");
+        addConstString("String");
+        addConstString("Int");
+        addConstString("Bool");
+        ///TODO add restul de nume de clase.
+
+        for (ASTNode cd: program.stmts) {
+            visit((ClassDef) cd);
+        }
+
+        programST.add("constString", constStringList);
+
+        for (Integer k: constIntSet) { ///TODO constante negative?
+            constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
+        }
+        programST.add("constInt", constIntList);
+
         return programST;
+    }
+
+    private void addConstString(String s) {
+        int labelSize = (s.length()+1 + 3) / 4 + 4;
+
+        constStringList.add("e", templates.getInstanceOf("constStringEntry")
+                .add("index", ((Integer) constStringHt.size()).toString())
+                .add("size", ((Integer) labelSize).toString())
+                .add("indexLengthConstInt", s.length())
+                .add("value", s)
+        );
+
+        constStringHt.put(s, constStringHt.size());
+        constIntSet.add(s.length());
     }
 }
