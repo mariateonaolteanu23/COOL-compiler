@@ -1,8 +1,11 @@
 sequence(e) ::= "<e; separator=\"\n\">"
 sequenceSpaced(e) ::= "<e; separator=\"\n\n\">"
 
-program(data, classNames, textFuncs, textMain, classNames, classTabEntries, classProtObj) ::= <<
+program(strConst, intConst, boolConst,
+        className, classObjTab, classProtObj, classDispTab,
+        classInitSignature, functionSignature, classInitBody, functionInitBody) ::= <<
 .data
+
 .align 2
 .globl class_nameTab
 .globl Int_protObj
@@ -21,8 +24,15 @@ _string_tag:
 _bool_tag:
     .word 4
 
-class_nameTab: #pointeri catre str_const? care retin numele claselor.
-<classNames>
+<constString> #lista de strConstEntry.
+
+<constInt> #lista de intConstEntry.
+
+<constBool> #list de boolConstEntry.
+
+class_nameTab:
+<className> #lista de classNameEntry.
+
 class_objTab:
     .word Object_protObj   #prototipul clasei.
     .word Object_init      #functia de initializare a unei clase.
@@ -36,60 +46,102 @@ class_objTab:
     .word Bool_init
     .word Main_protObj
     .word Main_init
-<classTabEntries>
-<classProtObj>
+<classObjTab> #lista de classObjTabEntry.
 
+<classProtObj> #prototipul unei clase. lista de classProtObjEntry.
 
-<data>
+<classDispTab> #dispatch table clasa. ce functii poate apela fiecare clasa. lista de classDispTabEntry.
 
 heap_start:
     .word 0
+
 .text
-<textFuncs>
 
-main:
-<textMain>
-li $v0, 10
-syscall		#exit
+<classInitSignature> #lista de classInitSignatureEntry. OK
+<functionSignature> #lista de functionSignatureEntry. OK
+
+<classInitBody> #lista de functionInitEntry. OK
+<functionInitBody> #lista de functionInitBodyEntry. OK
 >>
 
 
-classObjTabEntry(name) ::= <<
-    .word <name>_protObj
-    .word <name>_init
->>
 
-classProtObj(name, tag, size, features) ::= <<
-    <name>_protObj
-    .word <tag>
+constStringEntry(index, size, indexLengthConstInt, value) ::= <<
+int_const<index>:
+    .word 3
     .word <size>
-    .word <name>_dispTable
-<features>
+    .word String_dispTab
+    .word int_const<indexLengthConstInt>
+    .asciiz "<value>"
+    .align 2
 >>
 
-classDispTab(name, functions) ::= <<
-    <name>_dispTab:
-<functions>
- >>
-
-functionDispTabEntry(class, name) ::= <<
-    .word <class>.<name>
+constIntEntry(index, value) ::= <<
+int_const<index>:
+    .word 2
+    .word 4
+    .word Int_dispTab
+    .word <value>
 >>
 
-classInitEntry(class) ::= <<
-   .globl <class>_init
+constBoolEntry(index, value) ::= <<
+int_const<index>:
+    .word 4
+    .word 4
+    .word Bool_dispTab
+    .word <value>
 >>
 
-functionInitEntry(class, name) ::= <<
-   .globl <class>.<name>
+
+
+classNameEntry(className) ::= <<
+    .word <className> #de fapt pointer catre str_const care retine numele clasei.
 >>
 
-classInit(class, body) ::= <<
-   <class>_init:
-<body>
+classObjTabEntry(className) ::= <<
+    .word <className>_protObj
+    .word <className>_init
 >>
 
-functionInit(class, name, body) ::= <<
-    <class>.<name>:
- <body>
+classProtObjEntry(className, classTag, size, features) ::= <<
+<className>_protObj:
+    .word <classTag>
+    .word <size>
+    .word <className>_dispTable
+    <features>
+>>
+
+
+
+
+
+classDispTabEntry(className, functions) ::= <<
+<className>_dispTab:
+    <functionPointer> #lista de functionPointerEntry.
+>>
+
+functionPointerEntry(className, funcName) ::= <<
+.word <className>.<funcName>
+>>
+
+
+
+
+
+classInitSignatureEntry(className) ::= <<
+.globl <className>_init
+>>
+
+functionSignatureEntry(className, funcName) ::= <<
+.globl <className>.<funcName>
+>>
+
+classInitBodyEntry(className, body) ::= <<
+<className>_init:
+    <body>
+>>
+
+functionInitBodyEntry(className, funcName, body) ::= <<
+<className>.<funcName>:
+    <body>
 >>
