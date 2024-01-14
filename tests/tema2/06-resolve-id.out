@@ -1,3 +1,4 @@
-"06-resolve-id.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
-"main.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+"06-resolve-id.cl", line 3:24, Semantic error: Undefined identifier u
+"06-resolve-id.cl", line 4:24, Semantic error: Undefined identifier y
+"06-resolve-id.cl", line 4:36, Semantic error: Undefined identifier v
 Compilation halted

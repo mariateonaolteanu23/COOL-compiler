@@ -1,5 +1,9 @@
 package cool.compiler;
 
+import cool.ast.ASTConstructionVisitor;
+import cool.ast.ASTDefinitionPassVisitor;
+import cool.ast.ASTIntermediatePassVisitor;
+import cool.ast.ASTResolutionPassVisitor;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
@@ -123,8 +127,18 @@ public class Compiler {
         
         // Populate global scope.
         SymbolTable.defineBasicClasses();
-        
-        // TODO Semantic analysis
+
+        // Semantic analysis
+        var ast = new ASTConstructionVisitor().visit(globalTree);
+
+        var definitionPassVisitor = new ASTDefinitionPassVisitor();
+        ast.accept(definitionPassVisitor);
+
+        var intermediatePassVisitor = new ASTIntermediatePassVisitor();
+        ast.accept(intermediatePassVisitor);
+
+        var resolutionPassVisitor = new ASTResolutionPassVisitor();
+        ast.accept(resolutionPassVisitor);
         
         if (SymbolTable.hasSemanticErrors()) {
             System.err.println("Compilation halted");

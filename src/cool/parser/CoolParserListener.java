@@ -68,18 +68,6 @@ public interface CoolParserListener extends ParseTreeListener {
 	 */
 	void exitFormalDef(CoolParser.FormalDefContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code new}
-	 * labeled alternative in {@link CoolParser#expr}.
-	 * @param ctx the parse tree
-	 */
-	void enterNew(CoolParser.NewContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code new}
-	 * labeled alternative in {@link CoolParser#expr}.
-	 * @param ctx the parse tree
-	 */
-	void exitNew(CoolParser.NewContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code bitComplement}
 	 * labeled alternative in {@link CoolParser#expr}.
 	 * @param ctx the parse tree
@@ -91,6 +79,18 @@ public interface CoolParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitBitComplement(CoolParser.BitComplementContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code new}
+	 * labeled alternative in {@link CoolParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterNew(CoolParser.NewContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code new}
+	 * labeled alternative in {@link CoolParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitNew(CoolParser.NewContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code plusMinus}
 	 * labeled alternative in {@link CoolParser#expr}.

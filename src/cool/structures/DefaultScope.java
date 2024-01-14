@@ -26,14 +26,40 @@ public class DefaultScope implements Scope {
     @Override
     public Symbol lookup(String name) {
         var sym = symbols.get(name);
-        
+
         if (sym != null)
             return sym;
-        
+
         if (parent != null)
             return parent.lookup(name);
         
         return null;
+    }
+
+    @Override
+    public Symbol lookupId(String str) {
+        var sym = symbols.get(str);
+
+        if (sym != null)
+            return sym;
+
+        if (parent != null)
+            return parent.lookupId(str);
+
+        return null;
+    }
+
+    @Override
+    public Symbol lookupFunction(String str) {
+        return null;
+    }
+
+    @Override
+    public Symbol lookupClass() {
+        if (parent == null)
+            return null;
+
+        return parent.lookupClass();
     }
 
     @Override

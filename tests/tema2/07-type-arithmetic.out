@@ -1,3 +1,4 @@
-"07-type-arithmetic.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
-"main.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+"07-type-arithmetic.cl", line 4:20, Semantic error: Operand of * has type Bool instead of Int
+"07-type-arithmetic.cl", line 4:36, Semantic error: Operand of ~ has type String instead of Int
+"07-type-arithmetic.cl", line 4:44, Semantic error: Operand of - has type Bool instead of Int
 Compilation halted

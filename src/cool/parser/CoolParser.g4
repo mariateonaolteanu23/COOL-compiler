@@ -31,14 +31,15 @@ formal
     ;
 
 expr
-    : name=ID LPAREN (args+=expr (COMMA args+=expr)*)? RPAREN       # implicitDispatch
-    | e=expr (AT type=TYPE)? DOT
+    :  e=expr (AT type=TYPE)? DOT
         name=ID LPAREN (args+=expr (COMMA args+=expr)*)? RPAREN     # explicitDispatch
+    | name=ID LPAREN (args+=expr (COMMA args+=expr)*)? RPAREN       # implicitDispatch
     | IF cond=expr THEN thenBranch=expr ELSE elseBranch=expr FI     # if
     | WHILE cond=expr LOOP body=expr POOL                           # while
     | LBRACE (body+=expr SEMI)+ RBRACE                              # block
     | LET localVar+=local (COMMA localVar+= local)* IN body=expr    # let
     | CASE e=expr OF (cases+=caseBranch)+ ESAC                      # case
+    | TILDE e=expr                                                  # bitComplement
     | ISVOID e=expr                                                 # isvoid
     | NEW type=TYPE                                                 # new
     | left=expr op=(MULT | DIV) right=expr                          # multDiv
@@ -46,7 +47,6 @@ expr
     | left=expr op=(LT | LE | EQ) right=expr                        # relational
     | NOT e=expr                                                    # not
     | name=ID ASSIGN e=expr                                         # assign
-    | TILDE e=expr                                                  # bitComplement
     | LPAREN e=expr RPAREN                                          # paren
     | ID                                                            # id
     | STRING                                                        # string

@@ -1,5 +1,9 @@
 package cool.ast;
 
+import cool.structures.FunctionSymbol;
+import cool.structures.IdSymbol;
+import cool.structures.Scope;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import java.util.List;
 
@@ -23,21 +27,34 @@ class ClassDef extends ASTNode {
     Type id;
     Type parent;
     List<Feature> features;
+    ParserRuleContext ctx;
 
-    ClassDef(Type id, List<Feature> features, Token token) {
+    private Scope scope;
+
+    ClassDef(Type id, List<Feature> features, Token token, ParserRuleContext ctx) {
         super(token);
         this.id = id;
         this.features = features;
+        this.ctx = ctx;
     }
-    ClassDef(Type id, Type parent, List<Feature> features, Token token) {
+    ClassDef(Type id, Type parent, List<Feature> features, Token token, ParserRuleContext ctx) {
         super(token);
         this.id = id;
         this.parent = parent;
         this.features = features;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    Scope getScope() {
+        return scope;
+    }
+
+    void setScope(Scope scope) {
+        this.scope = scope;
     }
 }
 
@@ -49,24 +66,58 @@ abstract class Expression extends ASTNode {
 
 
 class Id extends Expression {
-    Id(Token token) {
+    private IdSymbol symbol;
+    private Scope scope;
+
+    public ParserRuleContext ctx;
+
+    Id(Token token, ParserRuleContext ctx) {
         super(token);
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    IdSymbol getSymbol() {
+        return symbol;
+    }
+
+    void setSymbol(IdSymbol symbol) {
+        this.symbol = symbol;
+    }
+
+    Scope getScope() {
+        return scope;
+    }
+
+    void setScope(Scope scope) {
+        this.scope = scope;
     }
 }
 
 class New extends Expression {
+    private Scope scope;
     Type type;
-    New(Type type, Token token) {
+
+    ParserRuleContext ctx;
+    New(Type type, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    Scope getScope() {
+        return scope;
+    }
+
+    void setScope(Scope scope) {
+        this.scope = scope;
     }
 }
 
@@ -104,10 +155,11 @@ class Bool extends Expression {
 class BitComplement extends Expression {
     Expression exp;
 
-    BitComplement(Expression exp, Token op) {
+    ParserRuleContext ctx;
+    BitComplement(Expression exp, Token op, ParserRuleContext ctx) {
         super(op);
         this.exp = exp;
-
+        this.ctx = ctx;
     }
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
@@ -117,10 +169,12 @@ class BitComplement extends Expression {
 class Isvoid extends Expression {
     Expression exp;
 
-    Isvoid(Expression exp, Token op) {
+    ParserRuleContext ctx;
+
+    Isvoid(Expression exp, Token op, ParserRuleContext ctx) {
         super(op);
         this.exp = exp;
-
+        this.ctx = ctx;
     }
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
@@ -130,9 +184,12 @@ class Isvoid extends Expression {
 class Not extends Expression {
     Expression exp;
 
-    Not(Expression exp, Token op) {
+    ParserRuleContext ctx;
+
+    Not(Expression exp, Token op, ParserRuleContext ctx) {
         super(op);
         this.exp = exp;
+        this.ctx = ctx;
 
     }
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -157,28 +214,42 @@ class If extends Expression {
     Expression cond;
     Expression thenBranch;
     Expression elseBranch;
+    ParserRuleContext ctx;
 
-    If(Expression cond,Expression thenBranch, Expression elseBranch, Token start) {
+    Scope scope;
+
+    If(Expression cond,Expression thenBranch, Expression elseBranch, Token start, ParserRuleContext ctx) {
         super(start);
         this.cond = cond;
         this.thenBranch = thenBranch;
         this.elseBranch = elseBranch;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    Scope getScope() {
+        return scope;
+    }
+
+    void setScope(Scope scope) {
+        this.scope = scope;
     }
 }
 
 class While extends Expression {
     Expression cond;
     Expression body;
+    ParserRuleContext ctx;
 
 
-    While(Expression cond, Expression body, Token start) {
+    While(Expression cond, Expression body, Token start, ParserRuleContext ctx) {
         super(start);
         this.cond = cond;
         this.body = body;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -191,17 +262,21 @@ class Local extends ASTNode{
     Id id;
     Expression init;
 
-    Local(Id id, Type type, Token token) {
+    ParserRuleContext ctx;
+
+    Local(Id id, Type type, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
+        this.ctx = ctx;
     }
 
-    Local(Id id, Type type, Expression initValue, Token token) {
+    Local(Id id, Type type, Expression initValue, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
         this.init = initValue;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -230,12 +305,14 @@ class CaseBranch extends ASTNode {
     Type type;
     Expression exp;
 
+    ParserRuleContext ctx;
 
-    CaseBranch(Id id, Type type, Expression exp, Token token) {
+    CaseBranch(Id id, Type type, Expression exp, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
         this.exp = exp;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -263,10 +340,13 @@ class Assign extends Expression {
     Id id;
     Expression expr;
 
-    Assign(Id id, Expression expr, Token token) {
+    ParserRuleContext ctx;
+
+    Assign(Id id, Expression expr, Token token, ParserRuleContext ctx) {
         super(token);
         this.id = id;
         this.expr = expr;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -278,10 +358,13 @@ class Relational extends Expression {
     Expression left;
     Expression right;
 
-    Relational(Expression left, Expression right, Token op) {
+    ParserRuleContext ctx;
+
+    Relational(Expression left, Expression right, Token op, ParserRuleContext ctx) {
         super(op);
         this.left = left;
         this.right = right;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -293,10 +376,13 @@ class Plus extends Expression {
     Expression left;
     Expression right;
 
-    Plus(Expression left, Expression right, Token op) {
+    ParserRuleContext ctx;
+
+    Plus(Expression left, Expression right, Token op, ParserRuleContext ctx) {
         super(op);
         this.left = left;
         this.right = right;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -308,10 +394,13 @@ class Minus extends Expression {
     Expression left;
     Expression right;
 
-    Minus(Expression left, Expression right, Token op) {
+    ParserRuleContext ctx;
+
+    Minus(Expression left, Expression right, Token op,  ParserRuleContext ctx) {
         super(op);
         this.left = left;
         this.right = right;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -323,11 +412,13 @@ class Minus extends Expression {
 class Mult extends Expression {
     Expression left;
     Expression right;
+    ParserRuleContext ctx;
 
-    Mult(Expression left, Expression right, Token op) {
+    Mult(Expression left, Expression right, Token op, ParserRuleContext ctx) {
         super(op);
         this.left = left;
         this.right = right;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -339,10 +430,13 @@ class Div extends Expression {
     Expression left;
     Expression right;
 
-    Div(Expression left, Expression right, Token op) {
+    ParserRuleContext ctx;
+
+    Div(Expression left, Expression right, Token op, ParserRuleContext ctx) {
         super(op);
         this.left = left;
         this.right = right;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -353,9 +447,12 @@ class Div extends Expression {
 class UnaryArithmetic extends Expression {
     Expression expr;
 
-    UnaryArithmetic(Expression expr, Token op) {
+    ParserRuleContext ctx;
+
+    UnaryArithmetic(Expression expr, Token op, ParserRuleContext ctx) {
         super(op);
         this.expr = expr;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -383,11 +480,13 @@ class Type extends ASTNode {
 class Formal extends ASTNode {
     Type type;
     Id id;
+    ParserRuleContext ctx;
 
-    Formal(Type type, Id id, Token token) {
+    Formal(Type type, Id id, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -401,17 +500,21 @@ class Attribute extends Feature {
     Id id;
     Expression init;
 
-    Attribute(Id id, Type type, Token token) {
+    ParserRuleContext ctx;
+
+    Attribute(Id id, Type type, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
+        this.ctx = ctx;
     }
 
-    Attribute(Id id, Type type, Expression initValue, Token token) {
+    Attribute(Id id, Type type, Expression initValue, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
         this.init = initValue;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -426,12 +529,15 @@ class FuncDef extends Feature {
     List<Formal> formals;
     Expression body;
 
-    FuncDef(Type type, Id id, List<Formal> formals, Expression body, Token token) {
+    ParserRuleContext ctx;
+
+    FuncDef(Type type, Id id, List<Formal> formals, Expression body, Token token, ParserRuleContext ctx) {
         super(token);
         this.type = type;
         this.id = id;
         this.formals = formals;
         this.body = body;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -441,24 +547,26 @@ class FuncDef extends Feature {
 
 class ExplicitDispatch extends Expression {
     Expression exp;
-
     Type type;
     Id id;
     List<Expression> args;
+    ParserRuleContext ctx;
 
-    ExplicitDispatch(Expression exp, Type type, Id id, List<Expression> args, Token token) {
+    ExplicitDispatch(Expression exp, Type type, Id id, List<Expression> args, Token token, ParserRuleContext ctx) {
         super(token);
         this.exp = exp;
         this.type = type;
         this.id = id;
         this.args = args;
+        this.ctx = ctx;
     }
 
-    ExplicitDispatch(Expression exp, Id id, List<Expression> args, Token token) {
+    ExplicitDispatch(Expression exp, Id id, List<Expression> args, Token token, ParserRuleContext ctx) {
         super(token);
         this.exp = exp;
         this.id = id;
         this.args = args;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -469,8 +577,8 @@ class ExplicitDispatch extends Expression {
 class ImplicitDispatch extends ExplicitDispatch {
 
     // self.f(...)
-    ImplicitDispatch(Expression exp, Id id, List<Expression> args, Token token) {
-        super(exp, id, args, token);
+    ImplicitDispatch(Expression exp, Id id, List<Expression> args, Token token, ParserRuleContext ctx) {
+        super(exp, id, args, token, ctx);
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {
@@ -481,9 +589,12 @@ class ImplicitDispatch extends ExplicitDispatch {
 class Program extends ASTNode {
     List<ASTNode> stmts;
 
-    Program(List<ASTNode> stmts, Token token) {
+    ParserRuleContext ctx;
+
+    Program(List<ASTNode> stmts, Token token, ParserRuleContext ctx) {
         super(token);
         this.stmts = stmts;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {

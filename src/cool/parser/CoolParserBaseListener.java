@@ -79,18 +79,6 @@ public class CoolParserBaseListener implements CoolParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterNew(CoolParser.NewContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitNew(CoolParser.NewContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterBitComplement(CoolParser.BitComplementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -98,6 +86,18 @@ public class CoolParserBaseListener implements CoolParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitBitComplement(CoolParser.BitComplementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNew(CoolParser.NewContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNew(CoolParser.NewContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

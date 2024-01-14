@@ -1,3 +1,2 @@
-"14-type-block.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
-"main.cl", line 1:1, Syntax error: mismatched input 'class' expecting {<EOF>, CLASS}
+"14-type-block.cl", line 10:14, Semantic error: Type String of assigned expression is incompatible with declared type Int of identifier x
 Compilation halted

@@ -47,19 +47,19 @@ public interface CoolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFormalDef(CoolParser.FormalDefContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code new}
-	 * labeled alternative in {@link CoolParser#expr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNew(CoolParser.NewContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code bitComplement}
 	 * labeled alternative in {@link CoolParser#expr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitBitComplement(CoolParser.BitComplementContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code new}
+	 * labeled alternative in {@link CoolParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNew(CoolParser.NewContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code plusMinus}
 	 * labeled alternative in {@link CoolParser#expr}.
