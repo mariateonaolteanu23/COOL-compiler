@@ -6,9 +6,17 @@ import org.stringtemplate.v4.STGroupFile;
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     static STGroupFile templates = new STGroupFile("./src/cool/ast/cgen.stg");
 
-    ST mainSection;	// filled directly (through visitor returns)
-    ST dataSection; // filled collaterally ("global" access)
-    ST funcSection; // filled collaterally ("global" access)
+    ST constStringList;
+    ST constIntList;
+    ST constBoolList;
+    ST classNameList;
+    ST classObjTabList;
+    ST classProtObjList;
+    ST classDispTabList;
+    ST classInitSignatureList;
+    ST functionSignatureList;
+    ST classInitBodyList;
+    ST functionInitBodyList;
 
     @Override
     public ST visit(Id id) {
@@ -157,27 +165,24 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     @Override
     public ST visit(Program program) {
-        dataSection = templates.getInstanceOf("sequenceSpaced");
-        funcSection = templates.getInstanceOf("sequenceSpaced");
-        mainSection = templates.getInstanceOf("sequence");
+        ST programST = templates.getInstanceOf("program");
 
-//        for (ASTNode e: program.stmts)
-//            mainSection.add("e", e.accept(this));
+        constStringList = templates.getInstanceOf("sequence");
+        constIntList = templates.getInstanceOf("sequence");
+        constBoolList = templates.getInstanceOf("sequence");
+        classNameList = templates.getInstanceOf("sequence");
+        classObjTabList = templates.getInstanceOf("sequence");
+        classProtObjList = templates.getInstanceOf("sequence");
+        classDispTabList = templates.getInstanceOf("sequence");
+        classInitSignatureList = templates.getInstanceOf("sequence");
+        functionSignatureList = templates.getInstanceOf("sequence");
+        classInitBodyList = templates.getInstanceOf("sequence");
+        functionInitBodyList = templates.getInstanceOf("sequence");
 
-        //assembly-ing it all together. HA! get it?
-        var programST = templates.getInstanceOf("program");
-        programST.add("data", dataSection);
-        programST.add("textFuncs", funcSection);
-        programST.add("textMain", mainSection);
+        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "0").add("value", "0"));
+        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "1").add("value", "1"));
 
-        var seq = templates.getInstanceOf("sequence"); // pentru fiecare lista de ST-uri
-        seq.add("e", templates.getInstanceOf("classObjTabEntry").add("name", "A"));
-        seq.add("e", templates.getInstanceOf("classObjTabEntry").add("name", "B"));
-
-        programST.add("classTabEntries", seq);
-
-//        programST.add("classTabEntries", seq.add("e", templates.getInstanceOf("class_objTabEntry").add("name", "A")));
-//        programST.add("classTabEntries", templates.getInstanceOf("class_objTabEntry").add("name", "B"));
+        programST.add("constBool", constBoolList);
 
         return programST;
     }
