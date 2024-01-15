@@ -113,6 +113,10 @@ classProtObjEntry(className, classTag, size, features) ::= <<
     <features>
 >>
 
+featureEntry(value) ::= <<
+.word <value>
+>>
+
 
 
 
@@ -125,7 +129,6 @@ classDispTabEntry(className, functionPointer) ::= <<
 functionPointerEntry(className, funcName) ::= <<
 .word <className>.<funcName>
 >>
-
 
 
 

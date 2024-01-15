@@ -19,8 +19,10 @@
 #CLASSPATH=.:./antlr-4.13.0-complete.jar
 CLASSPATH=./out/production/Tema2/
 
+#for source_file in ./tests/tema3/01*.cl; do
+
 passed=0
-for source_file in ./tests/tema3/01*.cl; do
+for source_file in ./tests/tema3/0*.cl; do
 	echo -e "\n`basename $source_file`"
 
 	#java -cp $CLASSPATH cool.compiler.Compiler $source_file > ./tests/tema3/`basename $source_file .cl`.s

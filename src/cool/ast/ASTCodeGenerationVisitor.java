@@ -1,9 +1,6 @@
 package cool.ast;
 
-import cool.structures.ClassSymbol;
-import cool.structures.Scope;
-import cool.structures.Symbol;
-import cool.structures.SymbolTable;
+import cool.structures.*;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
@@ -25,6 +22,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     HashMap<String, Integer> classObjTabHt; ///nume clasa -> a cata intrare in class_objTab e a clasei.
 
     ST classProtObjList;
+    HashMap<String, HashMap<String, Integer>> classProtObjHt; ///nume clasa -> (nume atribut -> al catelea este in lista obiectului prototip).
 
     ST classDispTabList;
     HashMap<String, HashMap<String, ClassSymbol>> classDispTabHt; ///nume clasa -> (nume functie -> din care clasa apelez functia).
@@ -189,21 +187,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
                 .add("className", className));
         classObjTabHt.put(className, classObjTabHt.size());
 
-        ///mai tb explorate metodele din clase aici?
-        int cntAttributes = 0;
-        for (Feature f: classDef.features) if (f instanceof Attribute) cntAttributes++;
-
-        classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
-                .add("className", className)
-                .add("classTag", classObjTabHt.get(className).toString())
-                .add("size", ((Integer) (3 + cntAttributes)).toString())
-                .add("features", "")
-        );
-
-        //classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", className)); ///? idk de ce nu.
-
         ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(className);
         populateClassDispatchTable(cs);
+        populateClassPrototypeObject(cs);
         computeClassInit(cs);
 
         for (Feature f: classDef.features) {
@@ -237,6 +223,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         classObjTabHt = new HashMap<>();
 
         classProtObjList = templates.getInstanceOf("sequence");
+        classProtObjHt = new HashMap<>();
+
         classDispTabList = templates.getInstanceOf("sequence");
         classDispTabHt = new HashMap<>();
 
@@ -330,6 +318,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         constIntSet.add(s.length());
     }
 
+    ///populeaza atat:
+    ///* prototype object-ul unei clase cu atribute gasite in ea si stramosii ei.
+    ///* dispatch table-ul clasei cu metode ce le poate apela (din ea sau din stramosii ei).
     private void populateClassDispatchTable(ClassSymbol cs) {
         ST classDispTabListEntry = templates.getInstanceOf("sequence");
 
@@ -363,6 +354,51 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         classDispTabEntry.add("functionPointer", classDispTabListEntry);
 
         classDispTabList.add("e", classDispTabEntry);
+    }
+
+    private void populateClassPrototypeObject(ClassSymbol cs) {
+        ST classProtObjEntryFeatures = templates.getInstanceOf("sequence");
+
+        String ogClassName = cs.getName();
+
+        classProtObjHt.put(ogClassName, new HashMap<>());
+        while (cs != null) {
+            for (Map.Entry<String, Symbol> entry: cs.getIdSymbols().entrySet()) {
+                String idName = entry.getKey();
+                String idType = ((IdSymbol) entry.getValue()).getType().getName();
+
+                ///clasa -> (id -> indicele in lista). nu ar tb sa il pun pe self.
+                if (!idName.equals("self") && !classProtObjHt.get(ogClassName).containsKey(idName)) {
+                    String value = ""; ///value e un pointer.
+
+                    switch (idType) {
+                        case "Int" -> value = "int_const0";
+                        case "String" -> value = "str_const0";
+                        case "Bool" -> value = "bool_const0";
+                        default -> value = "0"; ///void pointer?
+                    }
+
+                    classProtObjHt.get(ogClassName).put(idName, classProtObjHt.get(ogClassName).size());
+                    classProtObjEntryFeatures.add("e", templates.getInstanceOf("featureEntry")
+                            .add("value", value));
+                }
+            }
+
+            Scope parent = cs.getParent();
+            if (parent != null) {
+                cs = (ClassSymbol) parent.lookupClass();
+            } else {
+                cs = null;
+            }
+        }
+
+        ST classProtObjEntry = templates.getInstanceOf("classProtObjEntry");
+        classProtObjEntry.add("className", ogClassName);
+        classProtObjEntry.add("classTag", classObjTabHt.get(ogClassName).toString());
+        classProtObjEntry.add("features", classProtObjEntryFeatures);
+        classProtObjEntry.add("size", ((Integer) (3 + classProtObjHt.get(ogClassName).size())).toString());
+
+        classProtObjList.add("e", classProtObjEntry);
     }
 
     private void computeClassInit(ClassSymbol cs) {
