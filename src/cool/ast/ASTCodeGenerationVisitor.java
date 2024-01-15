@@ -1,10 +1,15 @@
 package cool.ast;
 
+import cool.structures.ClassSymbol;
+import cool.structures.Scope;
+import cool.structures.Symbol;
+import cool.structures.SymbolTable;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
@@ -25,6 +30,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     ST classProtObjList;
 
     ST classDispTabList;
+    HashMap<String, HashMap<String, ClassSymbol>> classDispTabHt; ///nume clasa -> (nume functie -> din care clasa apelez functia).
+                                                                  ///TODO poate trebuie si a cata intrare in lista este.
+
     ST classInitSignatureList;
     ST functionSignatureList;
     ST classInitBodyList;
@@ -193,6 +201,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
                 .add("features", "")
         );
 
+        populateClassDispatchTable((ClassSymbol) SymbolTable.globals.lookup(className));
+        //populateClassDispatchTable((ClassSymbol) classDef.getScope().lookupClass());
+
         return null;
     }
 
@@ -214,6 +225,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
         classProtObjList = templates.getInstanceOf("sequence");
         classDispTabList = templates.getInstanceOf("sequence");
+        classDispTabHt = new HashMap<>();
+
         classInitSignatureList = templates.getInstanceOf("sequence");
         functionSignatureList = templates.getInstanceOf("sequence");
         classInitBodyList = templates.getInstanceOf("sequence");
@@ -224,7 +237,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("constBool", constBoolList);
 
         addConstString("");
-        for (String baseClassName: List.of("Object", "IO", "String", "Int", "Bool")) {
+        for (ClassSymbol baseClassSymbol: List.of(ClassSymbol.OBJECT, ClassSymbol.IO, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL)) {
+            String baseClassName = baseClassSymbol.getName();
+
             addConstString(baseClassName);
 
             classNameList.add("e", templates.getInstanceOf("classNameEntry")
@@ -252,6 +267,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
                     .add("size", ((Integer) size).toString())
                     .add("features", features)
             );
+
+            populateClassDispatchTable(baseClassSymbol);
         }
 
         for (ASTNode cd: program.stmts) {
@@ -262,6 +279,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("className", classNameList);
         programST.add("classObjTab", classObjTabList);
         programST.add("classProtObj", classProtObjList);
+        programST.add("classDispTab", classDispTabList);
 
         for (Integer k: constIntSet) { ///TODO constante negative?
             constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
@@ -285,5 +303,44 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
         constStringHt.put(s, constStringHt.size());
         constIntSet.add(s.length());
+    }
+
+    private void populateClassDispatchTable(ClassSymbol cs) {
+        ST classDispTabListEntry = templates.getInstanceOf("sequence");
+
+        String ogClassName = cs.getName(), className = cs.getName();
+
+        classDispTabHt.put(ogClassName, new HashMap<>());
+        while (cs != null) {
+            System.out.println("#" + className);
+
+            for (Map.Entry<String, Symbol> entry: cs.getFunctionSymbols().entrySet()) {
+                String funcName = entry.getKey();
+
+                ///clasa -> (fname -> clasa din care e apelat.)
+                if (!classDispTabHt.get(ogClassName).containsKey(funcName)) {
+                    classDispTabHt.get(ogClassName).put(funcName, cs);
+                    classDispTabListEntry.add("e", templates.getInstanceOf("functionPointerEntry")
+                            .add("className", className)
+                            .add("funcName", funcName));
+                }
+            }
+
+            Scope parent = cs.getParent();
+            if (parent != null) {
+                cs = (ClassSymbol) parent.lookupClass();
+                if (cs != null) className = cs.getName();
+            } else {
+                cs = null;
+            }
+        }
+
+        System.out.println("#----");
+
+        ST classDispTabEntry = templates.getInstanceOf("classDispTabEntry");
+        classDispTabEntry.add("className", ogClassName);
+        classDispTabEntry.add("functionPointer", classDispTabListEntry);
+
+        classDispTabList.add("e", classDispTabEntry);
     }
 }

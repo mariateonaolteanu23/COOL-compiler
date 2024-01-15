@@ -24,32 +24,45 @@ _string_tag:
 _bool_tag:
     .word 4
 
-<constString> #lista de strConstEntry.
+#lista de strConstEntry.
+<constString>
 
-<constInt> #lista de intConstEntry.
+#lista de intConstEntry.
+<constInt>
 
-<constBool> #list de boolConstEntry.
+#list de boolConstEntry.
+<constBool>
 
+#lista de classNameEntry. de fapt pointer catre str_const care retine numele clasei.
 class_nameTab:
-<className> #lista de classNameEntry. de fapt pointer catre str_const care retine numele clasei.
+<className>
 
-class_objTab: # prototipul clasei. functia de initializare a unei clase.
-<classObjTab> #lista de classObjTabEntry.
+# prototipul clasei. functia de initializare a unei clase. lista de classObjTabEntry.
+class_objTab:
+<classObjTab>
 
-<classProtObj> #prototipul unei clase. lista de classProtObjEntry.
+#prototipul unei clase. lista de classProtObjEntry.
+<classProtObj>
 
-<classDispTab> #dispatch table clasa. ce functii poate apela fiecare clasa. lista de classDispTabEntry.
+#dispatch table clasa. ce functii poate apela fiecare clasa. lista de classDispTabEntry.
+<classDispTab>
 
 heap_start:
     .word 0
 
 .text
 
-<classInitSignature> #lista de classInitSignatureEntry. OK
-<functionSignature> #lista de functionSignatureEntry. OK
+#lista de classInitSignatureEntry.
+<classInitSignature>
 
-<classInitBody> #lista de classInitBodyEntry. OK
-<functionInitBody> #lista de functionInitBodyEntry. OK
+#lista de functionSignatureEntry.
+<functionSignature>
+
+#lista de classInitBodyEntry.
+<classInitBody>
+
+#lista de functionInitBodyEntry.
+<functionInitBody>
 >>
 
 
@@ -103,9 +116,9 @@ classProtObjEntry(className, classTag, size, features) ::= <<
 
 
 
-classDispTabEntry(className, functions) ::= <<
-<className>_dispTab:
-    <functionPointer> #lista de functionPointerEntry.
+classDispTabEntry(className, functionPointer) ::= <<
+<className>_dispTab: #lista de functionPointerEntry.
+    <functionPointer>
 >>
 
 functionPointerEntry(className, funcName) ::= <<

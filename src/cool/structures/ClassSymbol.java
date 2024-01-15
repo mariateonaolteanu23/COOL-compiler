@@ -20,7 +20,6 @@ public class ClassSymbol extends IdSymbol implements Scope {
 
     @Override
     public boolean add(Symbol sym) {
-
         if (sym instanceof FunctionSymbol) {
             if (functionSymbols.containsKey(sym.getName()))
                 return false;
@@ -122,4 +121,11 @@ public class ClassSymbol extends IdSymbol implements Scope {
         return (ClassSymbol) scope.lookupClass();
     }
 
+    public Map<String, Symbol> getFunctionSymbols() {
+        return functionSymbols;
+    }
+
+    public Map<String, Symbol> getIdSymbols() {
+        return idSymbols;
+    }
 }
