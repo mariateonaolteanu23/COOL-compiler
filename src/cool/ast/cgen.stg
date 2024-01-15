@@ -47,6 +47,7 @@ class_objTab:
 #dispatch table clasa. ce functii poate apela fiecare clasa. lista de classDispTabEntry.
 <classDispTab>
 
+.globl heap_start
 heap_start:
     .word 0
 
@@ -138,11 +139,36 @@ functionSignatureEntry(className, funcName) ::= <<
 >>
 
 classInitBodyEntry(className, body) ::= <<
-<className>_init:
+<className>_init: #TODO nu mai folosesc.
     <body>
 >>
 
 functionInitBodyEntry(className, funcName, body) ::= <<
-<className>.<funcName>:
+<className>.<funcName>: #TODO nu mai folosesc.
     <body>
+>>
+
+
+
+
+
+functionPreamble(funcName, body) ::= <<
+<funcName>:
+    addiu $sp $sp -12
+    sw $fp 12($sp)
+    sw $s0 8($sp)
+    sw $ra 4($sp)
+    addiu $fp $sp 4
+    move $s0 $a0
+    <body>
+    move $a0 $s0
+    lw $fp 12($sp)
+    lw $s0 8($sp)
+    lw $ra 4($sp)
+    addiu $sp $sp 12
+    jr $ra
+>>
+
+literal(value) ::= <<
+li $a0 <value>
 >>

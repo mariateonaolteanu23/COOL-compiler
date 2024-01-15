@@ -7,10 +7,7 @@ import cool.structures.SymbolTable;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     static STGroupFile templates = new STGroupFile("./src/cool/ast/cgen.stg");
@@ -45,7 +42,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
     @Override
     public ST visit(Int intt) {
-        return null;
+        ST literal = templates.getInstanceOf("literal");
+        literal.add("value", intt.getToken().getText());
+        return literal;
     }
 
     @Override
@@ -201,8 +200,22 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
                 .add("features", "")
         );
 
-        populateClassDispatchTable((ClassSymbol) SymbolTable.globals.lookup(className));
-        //populateClassDispatchTable((ClassSymbol) classDef.getScope().lookupClass());
+        //classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", className)); ///? idk de ce nu.
+
+        ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(className);
+        populateClassDispatchTable(cs);
+        computeClassInit(cs);
+
+        for (Feature f: classDef.features) {
+            if (f instanceof FuncDef) {
+                ST functionPreamble = templates.getInstanceOf("functionPreamble");
+
+                functionPreamble.add("funcName", cs.getName() + "." + f.token.getText());
+                functionPreamble.add("body", ((FuncDef) f).body.accept(this));
+
+                functionInitBodyList.add("e", functionPreamble);
+            }
+        }
 
         return null;
     }
@@ -269,7 +282,15 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
             );
 
             populateClassDispatchTable(baseClassSymbol);
+            computeClassInit(baseClassSymbol);
         }
+
+        ///dintr-un motiv, clasele default care pot mosteni nu sunt aici.
+        ///TODO mai sunt si alte lucruri la classInitSignature si functionSignature?
+        classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "Int"));
+        classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "String"));
+        classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "Bool"));
+        functionSignatureList.add("e", templates.getInstanceOf("functionSignatureEntry").add("className", "Main").add("funcName", "main"));
 
         for (ASTNode cd: program.stmts) {
             visit((ClassDef) cd);
@@ -280,6 +301,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         programST.add("classObjTab", classObjTabList);
         programST.add("classProtObj", classProtObjList);
         programST.add("classDispTab", classDispTabList);
+        programST.add("classInitSignature", classInitSignatureList);
+        programST.add("functionSignature", functionSignatureList);
+        programST.add("classInitBody", classInitBodyList);
+        programST.add("functionInitBody", functionInitBodyList);
 
         for (Integer k: constIntSet) { ///TODO constante negative?
             constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
@@ -312,8 +337,6 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
         classDispTabHt.put(ogClassName, new HashMap<>());
         while (cs != null) {
-            System.out.println("#" + className);
-
             for (Map.Entry<String, Symbol> entry: cs.getFunctionSymbols().entrySet()) {
                 String funcName = entry.getKey();
 
@@ -335,12 +358,26 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
             }
         }
 
-        System.out.println("#----");
-
         ST classDispTabEntry = templates.getInstanceOf("classDispTabEntry");
         classDispTabEntry.add("className", ogClassName);
         classDispTabEntry.add("functionPointer", classDispTabListEntry);
 
         classDispTabList.add("e", classDispTabEntry);
+    }
+
+    private void computeClassInit(ClassSymbol cs) {
+        ST functionPreamble = templates.getInstanceOf("functionPreamble");
+        functionPreamble.add("funcName", cs.getName() + "_init");
+
+        Scope parent = cs.getParent();
+        if (parent != null) {
+            ClassSymbol parentSymbol = (ClassSymbol) parent.lookupClass();
+            if (parentSymbol != null) {
+                ///init catre parinte.
+                functionPreamble.add("body", "jal " + parentSymbol.getName() + "_init");
+            }
+        }
+
+        classInitBodyList.add("e", functionPreamble);
     }
 }
