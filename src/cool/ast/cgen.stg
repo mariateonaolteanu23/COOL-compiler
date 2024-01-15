@@ -163,5 +163,5 @@ functionPreamble(funcName, body) ::= <<
 >>
 
 literal(value) ::= <<
-li $a0 <value>
+la $a0 <value>
 >>

@@ -4,6 +4,7 @@ import cool.structures.*;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
+import javax.sound.midi.Sequence;
 import java.util.*;
 
 public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
@@ -41,7 +42,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     @Override
     public ST visit(Int intt) {
         ST literal = templates.getInstanceOf("literal");
-        literal.add("value", intt.getToken().getText());
+        literal.add("value", "int_const" + intt.getToken().getText());
         return literal;
     }
 
