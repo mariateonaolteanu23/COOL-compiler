@@ -109,7 +109,7 @@ classProtObjEntry(className, classTag, size, features) ::= <<
 <className>_protObj:
     .word <classTag>
     .word <size>
-    .word <className>_dispTable
+    .word <className>_dispTab
     <features>
 >>
 
@@ -136,16 +136,6 @@ classInitSignatureEntry(className) ::= <<
 
 functionSignatureEntry(className, funcName) ::= <<
 .globl <className>.<funcName>
->>
-
-classInitBodyEntry(className, body) ::= <<
-<className>_init: #TODO nu mai folosesc.
-    <body>
->>
-
-functionInitBodyEntry(className, funcName, body) ::= <<
-<className>.<funcName>: #TODO nu mai folosesc.
-    <body>
 >>
 
 
