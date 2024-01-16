@@ -2,10 +2,12 @@ package cool.ast;
 
 import cool.ast.CGHelp;
 
+import cool.compiler.Compiler;
 import cool.structures.*;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,13 +30,15 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     HashMap<String, HashMap<String, Integer>> classProtObjHt; ///nume clasa -> (nume atribut -> al catelea este in lista obiectului prototip).
 
     ST classDispTabList;
-    HashMap<String, HashMap<String, CGHelp.Pair<ClassSymbol, Integer>>> classDispTabHt;
+    HashMap<String, HashMap<String, CGHelp.Pair<ClassSymbol, Integer>>> classDispTabHt; // A a; a.f()
     ///nume clasa -> (nume functie -> <din care clasa apelez functia, a cata in lista e functia>).
 
     ST classInitSignatureList;
     ST functionSignatureList;
     ST classInitBodyList;
     ST functionInitBodyList;
+
+    int dispatchCount = 0;
 
     @Override
     public ST visit(Id id) {
@@ -170,7 +174,35 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(ExplicitDispatch explicitDispatch) {
-        return null;
+
+        ST explicitDispatchST = templates.getInstanceOf("explicitDispatch");
+
+        // TODO: add params
+
+
+        // TODO: add method offset
+        var func = explicitDispatch.id.getToken().getText();
+
+        /*
+        * var type <- tipul apelantului
+        *
+        * offset = classDispTabHt.get(type.getName()).get("f").second * 4
+        *
+        * */
+
+        explicitDispatchST.add("label", dispatchCount);
+        dispatchCount++;
+
+        // determin numele fisierului
+        var file = new File(Compiler.fileNames.get(explicitDispatch.ctx)).getName();
+        addConstString(file);
+        explicitDispatchST.add("file", constStringHt.get(file));
+
+        // determin linia din fisier
+        var line = explicitDispatch.token.getLine();
+        explicitDispatchST.add("line", line);
+
+        return explicitDispatchST;
     }
 
     @Override
