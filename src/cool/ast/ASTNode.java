@@ -1,5 +1,6 @@
 package cool.ast;
 
+import cool.structures.ClassSymbol;
 import cool.structures.FunctionSymbol;
 import cool.structures.IdSymbol;
 import cool.structures.Scope;
@@ -552,6 +553,8 @@ class ExplicitDispatch extends Expression {
     List<Expression> args;
     ParserRuleContext ctx;
 
+    ClassSymbol callerType;
+
     ExplicitDispatch(Expression exp, Type type, Id id, List<Expression> args, Token token, ParserRuleContext ctx) {
         super(token);
         this.exp = exp;
@@ -571,6 +574,14 @@ class ExplicitDispatch extends Expression {
 
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    public void setCallerType(ClassSymbol callerType) {
+        this.callerType = callerType;
+    }
+
+    public ClassSymbol getCallerType() {
+        return this.callerType;
     }
 }
 

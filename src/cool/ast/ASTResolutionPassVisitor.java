@@ -522,6 +522,8 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
         ClassSymbol symbol = exp.getFinalType(scope);
 
+        explicitDispatch.setCallerType(symbol);
+
 
         if (explicitDispatch.type != null) {
             var staticDispatch = explicitDispatch.type.getToken().getText();
