@@ -49,7 +49,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             return templates.getInstanceOf("self");
         }
 
-       // System.out.println(id.getToken().getText() + " " + id.getScope().lookupClass());
+        // System.out.println(id.getToken().getText() + " " + id.getScope().lookupClass());
         var currentClass = id.getScope().lookupClass().getName();
 
         var offset = classProtObjHt.get(currentClass).get(id.getToken().getText());
@@ -197,13 +197,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ST addParamSeq = templates.getInstanceOf("sequence");
         for (int i = implicitDispatch.args.size() - 1; i >= 0; i--) {
             Expression e = implicitDispatch.args.get(i);
-//            addParamSeq.add("e", e.accept(this)); ///deocamdata merge pentru Intt, Stringg, Bool.
-//            addParamSeq.add("e", "sw $a0 0($sp)"); ///in $a0 vine pointer catre rezultat. il stochez in varful stivei.
-//            addParamSeq.add("e", "addiu $sp $sp -4");
             addParamSeq.add("e", templates.getInstanceOf("param").add("e", e.accept(this)));
         }
 
-        // apelantul e self
+        ///apelantul e self.
         dispatch.add("caller", templates.getInstanceOf("self"));
 
         dispatch.add("funcParams", addParamSeq);
@@ -234,44 +231,44 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(ExplicitDispatch explicitDispatch) {
+        ST dispatch = templates.getInstanceOf("dispatch");
 
-        ST explicitDispatchST = templates.getInstanceOf("dispatch");
-
-        // TODO: add params
+        ///add params.
         ST addParamSeq = templates.getInstanceOf("sequence");
         for (int i = explicitDispatch.args.size() - 1; i >= 0; i--) {
             Expression e = explicitDispatch.args.get(i);
-            addParamSeq.add("e", templates.getInstanceOf("param").
-                    add("e", e.accept(this)));
+            addParamSeq.add("e", templates.getInstanceOf("param").add("e", e.accept(this)));
         }
 
-        // eval apelant
-        explicitDispatchST.add("caller", explicitDispatch.exp.accept(this));
+        dispatch.add("funcParams", addParamSeq);
 
-        // method offset
-        var func = explicitDispatch.id.getToken().getText();
+        ClassSymbol callerType = explicitDispatch.getCallerType();
 
-        // determina tipul apelantului
-        var callerType = explicitDispatch.getCallerType();
+        ///eval apelant & determina tipul apelantului
+        dispatch.add("objectResolution", explicitDispatch.exp.accept(this));
 
-        // determina offset-ul din tabela)
-        var offset = classDispTabHt.get(callerType.getName()).get(func).second * 4;
+        if (!(explicitDispatch.exp instanceof Id)) { ///buseste t7... da lw $a0 20($s0), apoi suprascrie cu ce e mai jos.
+            dispatch.add("caller", "la $a0 " + callerType.getName() + "_protObj"); ///TODO bug la t9 da callerType = Main inl IO.
+        }
 
-        explicitDispatchST.add("offset", offset);
+        ///determina offset-ul din tabela.
+        String func = explicitDispatch.id.getToken().getText();
+        int offset = classDispTabHt.get(callerType.getName()).get(func).second * 4;
+        dispatch.add("offset", offset);
 
-        explicitDispatchST.add("label", dispatchCount);
+        dispatch.add("label", dispatchCount);
         dispatchCount++;
 
-        // determin numele fisierului
-        var file = getFileName(explicitDispatch.ctx);
+        ///determin numele fisierului.
+        String file = getFileName(explicitDispatch.ctx);
         addConstString(file);
-        explicitDispatchST.add("errFile", constStringHt.get(file));
+        dispatch.add("errFile", constStringHt.get(file));
 
-        // determin linia din fisier
-        var line = explicitDispatch.token.getLine();
-        explicitDispatchST.add("errLine", line);
+        ///determin linia din fisier.
+        int line = explicitDispatch.token.getLine();
+        dispatch.add("errLine", line);
 
-        return explicitDispatchST;
+        return dispatch;
     }
 
     @Override
@@ -487,7 +484,6 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
                     attributes.add(new CGHelp.Pair<>(templates.getInstanceOf("featureEntry")
                             .add("value", value), idName));
-
                 }
             }
 
