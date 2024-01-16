@@ -54,7 +54,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Block block) {
-        return null;
+        ST seq = templates.getInstanceOf("sequence");
+        for (Expression e: block.exps) {
+            seq.add("e", e.accept(this));
+        }
+
+        return seq;
     }
 
     @Override
@@ -174,8 +179,6 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(ImplicitDispatch implicitDispatch) {
-        System.out.println("#hullo I'm visitor!");
-
         ST dispatch = templates.getInstanceOf("dispatch");
 
         ///adaug parametri.
@@ -187,7 +190,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             addParamSeq.add("e", "addiu $sp $sp -4");
         }
 
+        dispatch.add("dispatchAddress", "$s0"); ///s-ar putea sa fi inteles prost.
+
         dispatch.add("funcParams", addParamSeq);
+        dispatch.add("resetStackPointer", ((Integer)(4 * implicitDispatch.args.size())).toString());
 
         ///calcul offset.
         String className = ((ClassSymbol) implicitDispatch.id.getScope()).getName(); ///poate da null deref aici?
@@ -201,7 +207,6 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         dispatchCount++;
 
         ///(eroare) numele fisierului.
-
         String file = Compiler.fileNamesList.get(0); //new File(Compiler.fileNames.get(implicitDispatch.ctx)).getName();
         addConstString(file);
         dispatch.add("errFile", constStringHt.get(file));
