@@ -3,7 +3,9 @@ package cool.ast;
 import cool.ast.CGHelp;
 
 import cool.compiler.Compiler;
+import cool.parser.CoolParser;
 import cool.structures.*;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
@@ -175,7 +177,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     @Override
     public ST visit(ExplicitDispatch explicitDispatch) {
 
-        ST explicitDispatchST = templates.getInstanceOf("explicitDispatch");
+        ST explicitDispatchST = templates.getInstanceOf("dispatch");
 
         // TODO: add params
 
@@ -183,18 +185,19 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         // TODO: add method offset
         var func = explicitDispatch.id.getToken().getText();
 
-        /*
-        * var type <- tipul apelantului
-        *
-        * offset = classDispTabHt.get(type.getName()).get("f").second * 4
-        *
-        * */
+        // determina tipul apelantului
+        var callerType = explicitDispatch.getCallerType();
+
+        // determina offset-ul din tabela
+        var offset = classDispTabHt.get(callerType.getName()).get(func).second * 4;
+
+        explicitDispatchST.add("offset", offset);
 
         explicitDispatchST.add("label", dispatchCount);
         dispatchCount++;
 
         // determin numele fisierului
-        var file = new File(Compiler.fileNames.get(explicitDispatch.ctx)).getName();
+        var file = getFileName(explicitDispatch.ctx);
         addConstString(file);
         explicitDispatchST.add("file", constStringHt.get(file));
 
@@ -486,5 +489,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         functionPreamble.add("body", body);
 
         classInitBodyList.add("e", functionPreamble);
+    }
+
+    private String getFileName(ParserRuleContext ctx) {
+        while (! (ctx.getParent() instanceof CoolParser.ProgramContext))
+            ctx = ctx.getParent();
+
+        return new File(Compiler.fileNames.get(ctx)).getName();
     }
 }
