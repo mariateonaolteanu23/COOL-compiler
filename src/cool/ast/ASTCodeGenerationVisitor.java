@@ -247,7 +247,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ///eval apelant & determina tipul apelantului
         dispatch.add("objectResolution", explicitDispatch.exp.accept(this));
 
-        if (!(explicitDispatch.exp instanceof Id)) { ///buseste t7... da lw $a0 20($s0), apoi suprascrie cu ce e mai jos.
+        //if (!(explicitDispatch.exp instanceof Id)) { ///buseste t7... da lw $a0 20($s0), apoi suprascrie cu ce e mai jos.
+        if (explicitDispatch.exp instanceof ExplicitDispatch) {
             dispatch.add("caller", "la $a0 " + callerType.getName() + "_protObj"); ///TODO bug la t9 da callerType = Main inl IO.
         }
 
