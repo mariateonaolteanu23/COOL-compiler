@@ -165,15 +165,3 @@ functionPreamble(funcName, body) ::= <<
 literal(value) ::= <<
 la $a0 <value>
 >>
-
-explicitDispatch(params, label, file, line, offset) ::= <<
-<params>
-    bnez $a0 dispatch<label>
-    la   $a0 str_const<file>
-    li   $t1 <line>
-    jal  _dispatch_abort
-    dispatch<label>:
-        lw  $t1 8($a0)      # dispatch table
-        lw  $t1 <offset>($t1)   # method offset
-        jalr $t1
->>
