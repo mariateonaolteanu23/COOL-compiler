@@ -9,11 +9,13 @@ import cool.parser.*;
 import cool.structures.SymbolTable;
 
 import java.io.*;
+import java.util.ArrayList;
 
 
 public class Compiler {
     // Annotates class nodes with the names of files where they are defined.
     public static ParseTreeProperty<String> fileNames = new ParseTreeProperty<>();
+    public static ArrayList<String> fileNamesList = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
@@ -108,8 +110,10 @@ public class Compiler {
                 var child = tree.getChild(i);
                 // The only ParserRuleContext children of the program node
                 // are class nodes.
-                if (child instanceof ParserRuleContext)
+                if (child instanceof ParserRuleContext) {
                     fileNames.put(child, fileName);
+                    fileNamesList.add(fileName);
+                }
             }
             
             // Record any lexical or syntax errors.

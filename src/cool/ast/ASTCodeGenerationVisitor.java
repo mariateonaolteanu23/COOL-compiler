@@ -89,12 +89,17 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Bool bool) {
-        return null;
+        ST literal = templates.getInstanceOf("literal");
+        literal.add("value", "bool_const" + (bool.getToken().getText().equals("true")? "1": "0"));
+        return literal;
     }
 
     @Override
     public ST visit(Stringg string) {
-        return null;
+        ST literal = templates.getInstanceOf("literal");
+        addConstString(string.token.getText());
+        literal.add("value", "str_const" + constStringHt.get(string.token.getText()));
+        return literal;
     }
 
     @Override
@@ -169,40 +174,48 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(ImplicitDispatch implicitDispatch) {
-        return null;
+        System.out.println("#hullo I'm visitor!");
+
+        ST dispatch = templates.getInstanceOf("dispatch");
+
+        ///adaug parametri.
+        ST addParamSeq = templates.getInstanceOf("sequence");
+        for (int i = implicitDispatch.args.size() - 1; i >= 0; i--) {
+            Expression e = implicitDispatch.args.get(i);
+            addParamSeq.add("e", e.accept(this)); ///deocamdata merge pentru Intt, Stringg, Bool.
+            addParamSeq.add("e", "sw $a0 0($sp)"); ///in $a0 vine pointer catre rezultat. il stochez in varful stivei.
+            addParamSeq.add("e", "addiu $sp $sp -4");
+        }
+
+        dispatch.add("funcParams", addParamSeq);
+
+        ///calcul offset.
+        String className = ((ClassSymbol) implicitDispatch.id.getScope()).getName(); ///poate da null deref aici?
+        String funcName = implicitDispatch.id.getToken().getText();
+
+        int offset = classDispTabHt.get(className).get(funcName).second * 4;
+        dispatch.add("offset", ((Integer) offset).toString());
+
+        ///al catelea tag de dispatch e.
+        dispatch.add("label", dispatchCount);
+        dispatchCount++;
+
+        ///(eroare) numele fisierului.
+
+        String file = Compiler.fileNamesList.get(0); //new File(Compiler.fileNames.get(implicitDispatch.ctx)).getName();
+        addConstString(file);
+        dispatch.add("errFile", constStringHt.get(file));
+
+        ///(eroare) linia din fisier.
+        int line = implicitDispatch.token.getLine();
+        dispatch.add("errLine", Integer.toString(line));
+
+        return dispatch;
     }
 
     @Override
     public ST visit(ExplicitDispatch explicitDispatch) {
-
-        ST explicitDispatchST = templates.getInstanceOf("explicitDispatch");
-
-        // TODO: add params
-
-
-        // TODO: add method offset
-        var func = explicitDispatch.id.getToken().getText();
-
-        /*
-        * var type <- tipul apelantului
-        *
-        * offset = classDispTabHt.get(type.getName()).get("f").second * 4
-        *
-        * */
-
-        explicitDispatchST.add("label", dispatchCount);
-        dispatchCount++;
-
-        // determin numele fisierului
-        var file = new File(Compiler.fileNames.get(explicitDispatch.ctx)).getName();
-        addConstString(file);
-        explicitDispatchST.add("file", constStringHt.get(file));
-
-        // determin linia din fisier
-        var line = explicitDispatch.token.getLine();
-        explicitDispatchST.add("line", line);
-
-        return explicitDispatchST;
+        return null;
     }
 
     @Override
