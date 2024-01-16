@@ -44,7 +44,17 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Id id) {
-        return null;
+
+        if (id.getToken().getText().equals("self")) {
+            return templates.getInstanceOf("self");
+        }
+
+       // System.out.println(id.getToken().getText() + " " + id.getScope().lookupClass());
+        var currentClass = id.getScope().lookupClass().getName();
+
+        var offset = classProtObjHt.get(currentClass).get(id.getToken().getText());
+
+        return templates.getInstanceOf("attribute").add("offset", offset * 4 + 12);
     }
 
     @Override
@@ -187,12 +197,14 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ST addParamSeq = templates.getInstanceOf("sequence");
         for (int i = implicitDispatch.args.size() - 1; i >= 0; i--) {
             Expression e = implicitDispatch.args.get(i);
-            addParamSeq.add("e", e.accept(this)); ///deocamdata merge pentru Intt, Stringg, Bool.
-            addParamSeq.add("e", "sw $a0 0($sp)"); ///in $a0 vine pointer catre rezultat. il stochez in varful stivei.
-            addParamSeq.add("e", "addiu $sp $sp -4");
+//            addParamSeq.add("e", e.accept(this)); ///deocamdata merge pentru Intt, Stringg, Bool.
+//            addParamSeq.add("e", "sw $a0 0($sp)"); ///in $a0 vine pointer catre rezultat. il stochez in varful stivei.
+//            addParamSeq.add("e", "addiu $sp $sp -4");
+            addParamSeq.add("e", templates.getInstanceOf("param").add("e", e.accept(this)));
         }
 
-        dispatch.add("dispatchAddress", "$s0"); ///s-ar putea sa fi inteles prost.
+        // apelantul e self
+        dispatch.add("caller", templates.getInstanceOf("self"));
 
         dispatch.add("funcParams", addParamSeq);
         dispatch.add("resetStackPointer", ((Integer)(4 * implicitDispatch.args.size())).toString());
@@ -209,7 +221,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         dispatchCount++;
 
         ///(eroare) numele fisierului.
-        String file = Compiler.fileNamesList.get(0); //new File(Compiler.fileNames.get(implicitDispatch.ctx)).getName();
+        String file = getFileName(implicitDispatch.ctx);
         addConstString(file);
         dispatch.add("errFile", constStringHt.get(file));
 
@@ -226,15 +238,23 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ST explicitDispatchST = templates.getInstanceOf("dispatch");
 
         // TODO: add params
+        ST addParamSeq = templates.getInstanceOf("sequence");
+        for (int i = explicitDispatch.args.size() - 1; i >= 0; i--) {
+            Expression e = explicitDispatch.args.get(i);
+            addParamSeq.add("e", templates.getInstanceOf("param").
+                    add("e", e.accept(this)));
+        }
 
+        // eval apelant
+        explicitDispatchST.add("caller", explicitDispatch.exp.accept(this));
 
-        // TODO: add method offset
+        // method offset
         var func = explicitDispatch.id.getToken().getText();
 
         // determina tipul apelantului
         var callerType = explicitDispatch.getCallerType();
 
-        // determina offset-ul din tabela
+        // determina offset-ul din tabela)
         var offset = classDispTabHt.get(callerType.getName()).get(func).second * 4;
 
         explicitDispatchST.add("offset", offset);
@@ -245,11 +265,11 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         // determin numele fisierului
         var file = getFileName(explicitDispatch.ctx);
         addConstString(file);
-        explicitDispatchST.add("file", constStringHt.get(file));
+        explicitDispatchST.add("errFile", constStringHt.get(file));
 
         // determin linia din fisier
         var line = explicitDispatch.token.getLine();
-        explicitDispatchST.add("line", line);
+        explicitDispatchST.add("errLine", line);
 
         return explicitDispatchST;
     }
@@ -443,9 +463,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     private void populateClassPrototypeObject(ClassSymbol cs) {
         ST classProtObjEntryFeatures = templates.getInstanceOf("sequence");
 
+        List<CGHelp.Pair<ST, String>> attributes = new ArrayList<>();
+
         String ogClassName = cs.getName();
 
         classProtObjHt.put(ogClassName, new HashMap<>());
+
         while (cs != null) {
             for (Map.Entry<String, Symbol> entry: cs.getIdSymbols().entrySet()) {
                 String idName = entry.getKey();
@@ -462,9 +485,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                         default -> value = "0"; ///void pointer?
                     }
 
-                    classProtObjHt.get(ogClassName).put(idName, classProtObjHt.get(ogClassName).size());
-                    classProtObjEntryFeatures.add("e", templates.getInstanceOf("featureEntry")
-                            .add("value", value));
+                    attributes.add(new CGHelp.Pair<>(templates.getInstanceOf("featureEntry")
+                            .add("value", value), idName));
+
                 }
             }
 
@@ -475,6 +498,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                 cs = null;
             }
         }
+
+        Collections.reverse(attributes);
+        for (int i = 0; i < attributes.size(); ++i) {
+            classProtObjEntryFeatures.add("e", attributes.get(i).first);
+            classProtObjHt.get(ogClassName).put(attributes.get(i).second, i);
+        }
+
 
         ST classProtObjEntry = templates.getInstanceOf("classProtObjEntry");
         classProtObjEntry.add("className", ogClassName);
@@ -500,7 +530,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             }
         }
 
-        for (Feature f: classAttributes) {
+        for (Feature f : classAttributes) {
             Attribute a = (Attribute) f;
 
             String idName = a.id.getSymbol().getName();
