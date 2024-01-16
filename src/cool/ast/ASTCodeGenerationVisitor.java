@@ -1,13 +1,15 @@
 package cool.ast;
 
+import cool.ast.CGHelp;
+
 import cool.structures.*;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroupFile;
 
-import javax.sound.midi.Sequence;
 import java.util.*;
+import java.util.stream.Collectors;
 
-public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
+public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     static STGroupFile templates = new STGroupFile("./src/cool/ast/cgen.stg");
 
     ST constStringList;
@@ -26,8 +28,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
     HashMap<String, HashMap<String, Integer>> classProtObjHt; ///nume clasa -> (nume atribut -> al catelea este in lista obiectului prototip).
 
     ST classDispTabList;
-    HashMap<String, HashMap<String, ClassSymbol>> classDispTabHt; ///nume clasa -> (nume functie -> din care clasa apelez functia).
-                                                                  ///TODO poate trebuie si a cata intrare in lista este.
+    HashMap<String, HashMap<String, CGHelp.Pair<ClassSymbol, Integer>>> classDispTabHt;
+    ///nume clasa -> (nume functie -> <din care clasa apelez functia, a cata in lista e functia>).
 
     ST classInitSignatureList;
     ST functionSignatureList;
@@ -191,7 +193,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(className);
         populateClassDispatchTable(cs);
         populateClassPrototypeObject(cs);
-        computeClassInit(cs);
+        computeClassInit(cs, classDef.features.stream().filter(f -> f instanceof Attribute).collect(Collectors.toList()));
 
         for (Feature f: classDef.features) {
             if (f instanceof FuncDef) {
@@ -271,7 +273,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
             );
 
             populateClassDispatchTable(baseClassSymbol);
-            computeClassInit(baseClassSymbol);
+            computeClassInit(baseClassSymbol, List.of());
         }
 
         ///dintr-un motiv, clasele default care pot mosteni nu sunt aici.
@@ -334,7 +336,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
 
                 ///clasa -> (fname -> clasa din care e apelat.)
                 if (!classDispTabHt.get(ogClassName).containsKey(funcName)) {
-                    classDispTabHt.get(ogClassName).put(funcName, cs);
+                    classDispTabHt.get(ogClassName).put(funcName, new CGHelp.Pair<>(cs, classDispTabHt.get(ogClassName).size()));
                     classDispTabListEntry.add("e", templates.getInstanceOf("functionPointerEntry")
                             .add("className", className)
                             .add("funcName", funcName));
@@ -402,18 +404,54 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST>{
         classProtObjList.add("e", classProtObjEntry);
     }
 
-    private void computeClassInit(ClassSymbol cs) {
+    private void computeClassInit(ClassSymbol cs, List<Feature> classAttributes) {
         ST functionPreamble = templates.getInstanceOf("functionPreamble");
         functionPreamble.add("funcName", cs.getName() + "_init");
+
+        ST body = templates.getInstanceOf("sequence");
 
         Scope parent = cs.getParent();
         if (parent != null) {
             ClassSymbol parentSymbol = (ClassSymbol) parent.lookupClass();
             if (parentSymbol != null) {
                 ///init catre parinte.
-                functionPreamble.add("body", "jal " + parentSymbol.getName() + "_init");
+                body.add("e", "jal " + parentSymbol.getName() + "_init");
             }
         }
+
+        for (Feature f: classAttributes) {
+            Attribute a = (Attribute) f;
+
+            String idName = a.id.getSymbol().getName();
+            String idType = a.type.getToken().getText();
+            ///a.init este expresia.
+
+            if (!idName.equals("self") && a.init != null) {
+                Integer offset = classProtObjHt.get(cs.getName()).get(idName);
+
+                if (offset != null) {
+                    offset = 4 * offset + 12;
+
+                    String value = "0";
+                    if (a.init instanceof Int) {
+                        constIntSet.add(Integer.valueOf(a.init.getToken().getText()));
+                        value = "int_const" + a.init.getToken().getText();
+                    }  else if (a.init instanceof Stringg) {
+                        addConstString(a.init.getToken().getText());
+                        value = "str_const" + constStringHt.get(a.init.getToken().getText());
+                    } else if (a.init instanceof Bool) {
+                        value = "bool_const" + (a.init.getToken().getText().equals("true")? "1": "0");
+                    }
+
+                    ///TODO daca atributul e o instanta de alta clasa...
+
+                    body.add("e", "la $a0 " + value);
+                    body.add("e", "sw $a0 " + offset + "($s0)"); ///s0 + offset = unde e stocat atributul.
+                }
+            }
+        }
+
+        functionPreamble.add("body", body);
 
         classInitBodyList.add("e", functionPreamble);
     }
