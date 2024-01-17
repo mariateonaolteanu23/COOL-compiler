@@ -60,6 +60,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     @Override
     public ST visit(Int intt) {
         ST literal = templates.getInstanceOf("literal");
+        constIntSet.add(Integer.valueOf(intt.getToken().getText()));
         literal.add("value", "int_const" + intt.getToken().getText());
         return literal;
     }
@@ -141,7 +142,18 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Assign assign) {
-        return null;
+        ///id, expr.
+        ClassSymbol cs = (ClassSymbol) assign.id.getScope().lookupClass();
+
+        int offset = classProtObjHt.get(cs.getName()).get(assign.id.getToken().getText()) * 4 + 12;
+
+        ST seq = templates.getInstanceOf("sequence");
+        seq.add("e", assign.expr.accept(this));
+
+        ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
+        seq.add("e", "sw $a0 " + offset + "($s0)");
+
+        return seq;
     }
 
     @Override
