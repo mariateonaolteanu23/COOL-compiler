@@ -458,6 +458,7 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
         if (scope == null)
             return null;
 
+
         var func = scope.lookupFunction(id);
 
         if  (func == null) {
@@ -506,6 +507,11 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
             index++;
         }
 
+        var type =  ((FunctionSymbol) func).getType();
+        if (type != null && type.getName().equals("SELF_TYPE")) {
+            return type.getFinalType((Scope) ((FunctionSymbol) func).lookupClass());
+        }
+
         return ((FunctionSymbol) func).getType();
     }
 
@@ -521,7 +527,6 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
 
         ClassSymbol symbol = exp.getFinalType(scope);
-
         explicitDispatch.setCallerType(symbol);
 
 
