@@ -72,6 +72,8 @@ class Id extends Expression {
 
     public ParserRuleContext ctx;
 
+
+
     Id(Token token, ParserRuleContext ctx) {
         super(token);
         this.ctx = ctx;
@@ -264,6 +266,7 @@ class Local extends ASTNode{
     Expression init;
 
     ParserRuleContext ctx;
+
 
     Local(Id id, Type type, Token token, ParserRuleContext ctx) {
         super(token);

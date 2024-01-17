@@ -37,7 +37,7 @@ public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
         var parent = currentScope.getParent();
         currentScope.add(idSymbol);
         local.id.setSymbol(idSymbol);
-        local.id.setScope(parent);
+        local.id.setScope(currentScope);
 
         if (local.init != null) {
             var tmp = currentScope;

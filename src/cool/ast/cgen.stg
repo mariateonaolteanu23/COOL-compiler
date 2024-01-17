@@ -184,8 +184,13 @@ dispatch<label>:
 
 param(e) ::= <<
 <e>
-    sw $a0 0($sp)
-    addiu $sp $sp -4
+sw $a0 0($sp)
+addiu $sp $sp -4
+>>
+
+letParam(e, offset) ::= <<
+<e>
+sw $a0 <offset>($fp)
 >>
 
 self() ::= <<
@@ -198,4 +203,11 @@ lw $a0 <offset>(<reg>) #TODO mod s0
 
 optionalResetStack(amount) ::= <<
 addiu $sp $sp <amount>
+>>
+
+let(n, params, body, optionalResetStack) ::= <<
+<optionalResetStack(n)>
+<params>
+<body>
+<optionalResetStack>
 >>

@@ -44,10 +44,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     private int getOffsetForId(Id id) {
         int offset = 0;
-        if (id.getScope() instanceof ClassSymbol) {
+
+        var scope  = id.getScope();
+
+        if (scope instanceof ClassSymbol) {
             String currentClass = id.getScope().lookupClass().getName();
             offset = classProtObjHt.get(currentClass).get(id.getToken().getText()) * 4 + 12;
-        } else {
+        } else if (scope instanceof FunctionSymbol) {
             ///FunctionSymbol? (TODO let).
             FunctionSymbol fs = (FunctionSymbol) id.getScope();
             offset = 12;
@@ -55,7 +58,11 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                 if (entry.getKey().equals(id.getToken().getText())) break;
                 offset += 4;
             }
+        } else {
+            offset = ((IdSymbol)id.getScope().lookupId(id.getToken().getText())).getOffset();
         }
+
+        System.out.println("# get offset" + id.getToken().getText() + " " + id.getScope() + " " + offset);
 
         return offset;
     }
@@ -63,7 +70,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Id id) {
-        System.out.println("#" + id.getToken().getText());
+        System.out.println("#" + id.getToken().getText() + " " + id.getScope());
         if (id.getToken().getText().equals("self")) {
             System.out.println("#1 " + "self");
             return templates.getInstanceOf("self");
@@ -75,7 +82,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         }
 
         System.out.println("#3 " + "oth");
-        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$fp");
+        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$fp"); // merge si pt let
     }
 
     @Override
@@ -98,6 +105,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Local local) {
+
         return null;
     }
 
@@ -118,7 +126,23 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Let let) {
-        return null;
+        System.out.println("# hee");
+
+        var letAST = templates.getInstanceOf("let");
+
+        var letParams  = templates.getInstanceOf("sequence");
+
+        var index = 0;
+        for (Local param : let.locals) {
+            letParams.add("e", evalLocal(param, index));
+            index++;
+        }
+
+        letAST.add("n", - let.locals.size() * 4);
+        letAST.add("params", letParams);
+        letAST.add("body", let.body.accept(this));
+        letAST.add("optionalResetStack", templates.getInstanceOf("optionalResetStack").add("amount", let.locals.size() * 4));
+        return letAST;
     }
 
     @Override
@@ -176,7 +200,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             seq.add("e", "sw $a0 " + offset + "($s0)");
         } else {
             ///FunctionSymbol? (TODO let).
-            System.out.println("# " + ((FunctionSymbol)assign.id.getScope()).getLocalSymbols() + " " + offset);
+            //System.out.println("# " + ((FunctionSymbol)assign.id.getScope()).getLocalSymbols() + " " + offset);
             seq.add("e", "sw $a0 " + offset + "($fp)");
         }
 
@@ -609,5 +633,33 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             ctx = ctx.getParent();
 
         return new File(Compiler.fileNames.get(ctx)).getName();
+    }
+
+    private ST evalLocal(Local local, int index) {
+        ST paramST = templates.getInstanceOf("letParam");
+        ST initST = templates.getInstanceOf("literal");
+
+
+        if (local.init == null) {
+            String value;
+            switch (local.id.getSymbol().getType().getName()) {
+                case "Int" -> value = "int_const0";
+                case "String" -> value = "str_const0";
+                case "Bool" -> value = "bool_const0";
+                default -> value = "0"; ///void pointer?
+            }
+
+            initST.add("value", value); // trb pt toate tipurile default
+            paramST.add("e", initST);
+        } else {
+            paramST.add("e",  local.init.accept(this));
+        }
+
+
+        int offset = getOffsetForId(local.id) - (index + 1) * 4;
+        paramST.add("offset", offset);
+        local.id.getSymbol().setOffset(offset);
+
+        return paramST;
     }
 }
