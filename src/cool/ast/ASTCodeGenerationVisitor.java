@@ -42,19 +42,31 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     int dispatchCount = 0;
 
+    private int getOffsetForId(Id id) {
+        int offset = 0;
+        if (true || id.getScope() instanceof ClassSymbol) {
+            String currentClass = id.getScope().lookupClass().getName();
+            offset = classProtObjHt.get(currentClass).get(id.getToken().getText()) * 4 + 12;
+        } else {
+            ///FunctionSymbol? (TODO let).
+            FunctionSymbol fs = (FunctionSymbol) id.getScope();
+            offset = 12;
+            for (Map.Entry<String, Symbol> entry: fs.getLocalSymbols().entrySet()) {
+                if (entry.getKey().equals(id.getToken().getText())) break;
+                offset += 4;
+            }
+        }
+
+        return offset;
+    }
+
     @Override
     public ST visit(Id id) {
-
         if (id.getToken().getText().equals("self")) {
             return templates.getInstanceOf("self");
         }
 
-        // System.out.println(id.getToken().getText() + " " + id.getScope().lookupClass());
-        var currentClass = id.getScope().lookupClass().getName();
-
-        var offset = classProtObjHt.get(currentClass).get(id.getToken().getText());
-
-        return templates.getInstanceOf("attribute").add("offset", offset * 4 + 12);
+        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id));
     }
 
     @Override
@@ -143,15 +155,20 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     @Override
     public ST visit(Assign assign) {
         ///id, expr.
-        ClassSymbol cs = (ClassSymbol) assign.id.getScope().lookupClass();
-
-        int offset = classProtObjHt.get(cs.getName()).get(assign.id.getToken().getText()) * 4 + 12;
-
         ST seq = templates.getInstanceOf("sequence");
         seq.add("e", assign.expr.accept(this));
 
-        ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
-        seq.add("e", "sw $a0 " + offset + "($s0)");
+        int offset = getOffsetForId(assign.id);
+
+        System.out.println("#" + assign.id.getScope());
+
+        if (assign.id.getScope() instanceof ClassSymbol) {
+            ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
+            seq.add("e", "sw $a0 " + offset + "($s0)");
+        } else {
+            ///FunctionSymbol? (TODO let).
+            seq.add("e", "sw $a0 " + offset + "($sp)");
+        }
 
         return seq;
     }
