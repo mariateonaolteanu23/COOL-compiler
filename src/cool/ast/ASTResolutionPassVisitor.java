@@ -11,6 +11,9 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
         if (scope == null)
             return null;
 
+
+        id.setScope(getActualScopeForId(scope, id.getToken().getText()));
+
         var symbol = scope.lookupId(id.getToken().getText());
 
         if (symbol == null) {
@@ -740,5 +743,36 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
         program.stmts.forEach(stmt -> stmt.accept(this));
         return null;
+    }
+
+    Scope getActualScopeForId(Scope scope, String sym) {
+        while (scope != null) {
+
+            if (scope instanceof ClassSymbol) {
+//                System.out.println("#class " + scope);
+                if (((ClassSymbol) scope).getIdSymbols().containsKey(sym)) {
+                    return scope;
+                }
+            }
+
+            if (scope instanceof FunctionSymbol) {
+//                System.out.println("#cfunc " + scope);
+                if (((FunctionSymbol) scope).getLocalSymbols().containsKey(sym)) {
+
+                    return scope;
+                }
+            }
+
+            if (scope instanceof DefaultScope) {
+//                System.out.println("#def " + scope);
+                if (((DefaultScope) scope).getSymbols().containsKey(sym)) {
+                    return scope;
+                }
+            }
+
+            scope = scope.getParent();
+        }
+
+        return  null;
     }
 }

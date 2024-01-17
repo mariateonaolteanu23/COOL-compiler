@@ -72,4 +72,7 @@ public class DefaultScope implements Scope {
         return symbols.values().toString();
     }
 
+    public Map<String, Symbol> getSymbols() {
+        return symbols;
+    }
 }

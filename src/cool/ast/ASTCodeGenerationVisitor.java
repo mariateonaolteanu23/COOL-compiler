@@ -44,13 +44,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     private int getOffsetForId(Id id) {
         int offset = 0;
-        if (true || id.getScope() instanceof ClassSymbol) {
+        if (id.getScope() instanceof ClassSymbol) {
             String currentClass = id.getScope().lookupClass().getName();
             offset = classProtObjHt.get(currentClass).get(id.getToken().getText()) * 4 + 12;
         } else {
             ///FunctionSymbol? (TODO let).
             FunctionSymbol fs = (FunctionSymbol) id.getScope();
-            offset = 12;
+            offset = 0;
             for (Map.Entry<String, Symbol> entry: fs.getLocalSymbols().entrySet()) {
                 if (entry.getKey().equals(id.getToken().getText())) break;
                 offset += 4;
@@ -59,6 +59,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         return offset;
     }
+
 
     @Override
     public ST visit(Id id) {
@@ -160,13 +161,16 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         int offset = getOffsetForId(assign.id);
 
-        System.out.println("#" + assign.id.getScope());
+        System.out.println("# " + assign.id.getToken().getText() + " " +  assign.id.getScope());
+
+
 
         if (assign.id.getScope() instanceof ClassSymbol) {
             ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
             seq.add("e", "sw $a0 " + offset + "($s0)");
         } else {
             ///FunctionSymbol? (TODO let).
+            System.out.println("# " + ((FunctionSymbol)assign.id.getScope()).getLocalSymbols() + " " + offset);
             seq.add("e", "sw $a0 " + offset + "($sp)");
         }
 
