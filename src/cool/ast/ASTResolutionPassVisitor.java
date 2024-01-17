@@ -517,8 +517,9 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
     @Override
     public ClassSymbol visit(ExplicitDispatch explicitDispatch) {
-        var id = explicitDispatch.id.getToken().getText();
 
+        ///exp.id()
+        var id = explicitDispatch.id.getToken().getText();
         var scope = explicitDispatch.id.getScope();
         var exp = explicitDispatch.exp.accept(this);
 
@@ -527,6 +528,7 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
 
         ClassSymbol symbol = exp.getFinalType(scope);
+
         explicitDispatch.setCallerType(symbol);
 
 
@@ -549,10 +551,11 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
                 return null;
             }
 
-            var common = exp.leastUpperBound((ClassSymbol) symbol);
+            var common = exp.getFinalType(scope).leastUpperBound(symbol);
 
             // not a superclass of exp type
             if (!symbol.getName().equals(common.getName())) {
+
                 SymbolTable.error(explicitDispatch.ctx,
                         ((CoolParser.ExplicitDispatchContext)explicitDispatch.ctx).type,
                         "Type " + staticDispatch + " of static dispatch is not a superclass of type " +
