@@ -50,7 +50,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         } else {
             ///FunctionSymbol? (TODO let).
             FunctionSymbol fs = (FunctionSymbol) id.getScope();
-            offset = 0;
+            offset = 12;
             for (Map.Entry<String, Symbol> entry: fs.getLocalSymbols().entrySet()) {
                 if (entry.getKey().equals(id.getToken().getText())) break;
                 offset += 4;
@@ -63,11 +63,19 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Id id) {
+        System.out.println("#" + id.getToken().getText());
         if (id.getToken().getText().equals("self")) {
+            System.out.println("#1 " + "self");
             return templates.getInstanceOf("self");
         }
 
-        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id));
+        if (id.getScope() instanceof ClassSymbol) {
+            System.out.println("#2 " + "cs");
+            return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$s0");
+        }
+
+        System.out.println("#3 " + "oth");
+        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$fp");
     }
 
     @Override
@@ -163,15 +171,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         System.out.println("# " + assign.id.getToken().getText() + " " +  assign.id.getScope());
 
-
-
         if (assign.id.getScope() instanceof ClassSymbol) {
             ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
             seq.add("e", "sw $a0 " + offset + "($s0)");
         } else {
             ///FunctionSymbol? (TODO let).
             System.out.println("# " + ((FunctionSymbol)assign.id.getScope()).getLocalSymbols() + " " + offset);
-            seq.add("e", "sw $a0 " + offset + "($sp)");
+            seq.add("e", "sw $a0 " + offset + "($fp)");
         }
 
         return seq;
@@ -233,11 +239,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             addParamSeq.add("e", templates.getInstanceOf("param").add("e", e.accept(this)));
         }
 
+        dispatch.add("funcParams", addParamSeq);
+
         ///apelantul e self.
         dispatch.add("caller", templates.getInstanceOf("self"));
-
-        dispatch.add("funcParams", addParamSeq);
-        dispatch.add("resetStackPointer", ((Integer)(4 * implicitDispatch.args.size())).toString());
 
         ///calcul offset.
         String className = ((ClassSymbol) implicitDispatch.id.getScope()).getName(); ///poate da null deref aici?
@@ -280,9 +285,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ///eval apelant & determina tipul apelantului
         dispatch.add("objectResolution", explicitDispatch.exp.accept(this));
 
-        //if (!(explicitDispatch.exp instanceof Id)) { ///buseste t7... da lw $a0 20($s0), apoi suprascrie cu ce e mai jos.
         if (explicitDispatch.exp instanceof ExplicitDispatch) {
-            dispatch.add("caller", "la $a0 " + callerType.getName() + "_protObj"); ///TODO bug la t9 da callerType = Main inl IO.
+            dispatch.add("caller", "la $a0 " + callerType.getName() + "_protObj");
         }
 
         ///determina offset-ul din tabela.
@@ -333,6 +337,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
                 functionPreamble.add("funcName", cs.getName() + "." + f.token.getText());
                 functionPreamble.add("body", ((FuncDef) f).body.accept(this));
+                functionPreamble.add("optionalResetStack", templates.getInstanceOf("optionalResetStack")
+                        .add("amount", ((FuncDef) f).formals.size() * 4));
 
                 functionInitBodyList.add("e", functionPreamble);
             }
@@ -592,6 +598,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             }
         }
 
+        body.add("e", templates.getInstanceOf("self"));
         functionPreamble.add("body", body);
 
         classInitBodyList.add("e", functionPreamble);
