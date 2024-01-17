@@ -8,7 +8,7 @@ public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(Id id) {
-        id.setScope(currentScope);
+        id.setScope(getActualScopeForId(currentScope, id.getToken().getText()));
         return null;
     }
 
@@ -348,5 +348,17 @@ public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
     public Void visit(Program program) {
         program.stmts.forEach(stmt -> stmt.accept(this));
         return null;
+    }
+
+    Scope getActualScopeForId(Scope scope, String sym) {
+        while (scope != null) {
+            if (scope.lookupId(sym) != null) {
+                return scope;
+            }
+
+            scope = scope.getParent();
+        }
+
+        return  null;
     }
 }
