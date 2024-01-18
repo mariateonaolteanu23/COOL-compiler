@@ -384,8 +384,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         return null;
     }
 
-    @Override
-    public ST visit(ClassDef classDef) {
+    private void visitClassDefFirstPass(ClassDef classDef) {
         String className = classDef.token.getText();
         addConstString(className);
 
@@ -400,7 +399,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         populateClassDispatchTable(cs);
         populateClassPrototypeObject(cs);
         computeClassInit(cs, classDef.features.stream().filter(f -> f instanceof Attribute).collect(Collectors.toList()));
+    }
 
+    @Override
+    public ST visit(ClassDef classDef) {
         classDef.features.stream().filter(f -> f instanceof FuncDef).forEach(f -> f.accept(this));
 
         return null;
@@ -479,6 +481,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "String"));
         classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "Bool"));
         functionSignatureList.add("e", templates.getInstanceOf("functionSignatureEntry").add("className", "Main").add("funcName", "main"));
+
+        for (ASTNode cd: program.stmts) {
+            visitClassDefFirstPass((ClassDef) cd);
+        }
 
         for (ASTNode cd: program.stmts) {
             visit((ClassDef) cd);

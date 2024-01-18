@@ -749,22 +749,18 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
         while (scope != null) {
 
             if (scope instanceof ClassSymbol) {
-//                System.out.println("#class " + scope);
                 if (((ClassSymbol) scope).getIdSymbols().containsKey(sym)) {
                     return scope;
                 }
             }
 
             if (scope instanceof FunctionSymbol) {
-//                System.out.println("#cfunc " + scope);
                 if (((FunctionSymbol) scope).getLocalSymbols().containsKey(sym)) {
-
                     return scope;
                 }
             }
 
             if (scope instanceof DefaultScope) {
-//                System.out.println("#def " + scope);
                 if (((DefaultScope) scope).getSymbols().containsKey(sym)) {
                     return scope;
                 }
