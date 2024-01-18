@@ -32,7 +32,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     HashMap<String, HashMap<String, Integer>> classProtObjHt; ///nume clasa -> (nume atribut -> al catelea este in lista obiectului prototip).
 
     ST classDispTabList;
-    HashMap<String, HashMap<String, CGHelp.Pair<ClassSymbol, Integer>>> classDispTabHt; // A a; a.f()
+    HashMap<String, LinkedHashMap<String, CGHelp.Pair<ClassSymbol, Integer>>> classDispTabHt; // A a; a.f()
     ///nume clasa -> (nume functie -> <din care clasa apelez functia, a cata in lista e functia>).
 
     ST classInitSignatureList;
@@ -488,8 +488,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             mapClassSymbolToAstNode.put((ClassSymbol) SymbolTable.globals.lookup(cd.token.getText()), cd);
         }
 
+        ///NU include: ClassSymbol.OBJECT, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL, ClassSymbol.IO.
         ArrayList<ClassSymbol> classesDfsOrder = new ArrayList<>();
-        //classesDfsOrder.addAll(List.of(ClassSymbol.OBJECT, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL, ClassSymbol.IO));
 
         for (ASTNode node: program.stmts) {
             ClassDef cd = (ClassDef) node;
@@ -504,13 +504,11 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         System.out.println();
 
         for (ClassSymbol cs: classesDfsOrder) {
-            ClassDef cd = mapClassSymbolToAstNode.get(cs);
-            visitClassDefFirstPass(cd);
+            visitClassDefFirstPass(mapClassSymbolToAstNode.get(cs));
         }
 
         for (ClassSymbol cs: classesDfsOrder) {
-            ClassDef cd = mapClassSymbolToAstNode.get(cs);
-            visit(cd);
+            visit(mapClassSymbolToAstNode.get(cs));
         }
 
         programST.add("constString", constStringList);
@@ -547,41 +545,40 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         constIntSet.add(s.length());
     }
 
-    ///populeaza atat:
-    ///* prototype object-ul unei clase cu atribute gasite in ea si stramosii ei.
-    ///* dispatch table-ul clasei cu metode ce le poate apela (din ea sau din stramosii ei).
+    ///populeaza dispatch table-ul clasei cu metode ce le poate apela (din ea sau din stramosii ei).
+    ///se garanteaza ca clasa tata (daca exista) a fost populata.
     private void populateClassDispatchTable(ClassSymbol cs) {
-        ///TODO se garanteaza ca clasa tata (daca exista) a fost populata.
-
         ST classDispTabListEntry = templates.getInstanceOf("sequence");
 
-        String ogClassName = cs.getName(), className = cs.getName();
-
-        classDispTabHt.put(ogClassName, new HashMap<>());
-        while (cs != null) {
-            for (Map.Entry<String, Symbol> entry: cs.getFunctionSymbols().entrySet()) {
-                String funcName = entry.getKey();
-
-                ///clasa -> (fname -> clasa din care e apelat.)
-                if (!classDispTabHt.get(ogClassName).containsKey(funcName)) {
-                    classDispTabHt.get(ogClassName).put(funcName, new CGHelp.Pair<>(cs, classDispTabHt.get(ogClassName).size()));
-                    classDispTabListEntry.add("e", templates.getInstanceOf("functionPointerEntry")
-                            .add("className", className)
-                            .add("funcName", funcName));
-                }
-            }
-
-            Scope parent = cs.getParent();
-            if (parent != null) {
-                cs = (ClassSymbol) parent.lookupClass();
-                if (cs != null) className = cs.getName();
-            } else {
-                cs = null;
+        classDispTabHt.put(cs.getName(), new LinkedHashMap<>());
+        if (cs.getParent() instanceof ClassSymbol parent) {
+            for (Map.Entry<String, CGHelp.Pair<ClassSymbol, Integer>> entry: classDispTabHt.get(parent.getName()).entrySet()) {
+                classDispTabHt.get(cs.getName()).put(entry.getKey(), entry.getValue());
             }
         }
 
+        for (Map.Entry<String, Symbol> entry: cs.getFunctionSymbols().entrySet()) {
+            String funcName = entry.getKey();
+
+            ///clasa -> (fname -> clasa din care e apelat.)
+            if (!classDispTabHt.get(cs.getName()).containsKey(funcName)) {
+                classDispTabHt.get(cs.getName()).put(funcName, new CGHelp.Pair<>(cs, classDispTabHt.get(cs.getName()).size()));
+            } else {
+                ///tb sa inlocuim.
+                CGHelp.Pair<ClassSymbol, Integer> p = classDispTabHt.get(cs.getName()).get(funcName);
+                p.first = cs;
+                classDispTabHt.get(cs.getName()).put(funcName, p);
+            }
+        }
+
+        for (Map.Entry<String, CGHelp.Pair<ClassSymbol, Integer>> entry: classDispTabHt.get(cs.getName()).entrySet()) {
+            classDispTabListEntry.add("e", templates.getInstanceOf("functionPointerEntry")
+                    .add("className", entry.getValue().first.getName())
+                    .add("funcName", entry.getKey()));
+        }
+        
         ST classDispTabEntry = templates.getInstanceOf("classDispTabEntry");
-        classDispTabEntry.add("className", ogClassName);
+        classDispTabEntry.add("className", cs.getName());
         classDispTabEntry.add("functionPointer", classDispTabListEntry);
 
         classDispTabList.add("e", classDispTabEntry);
