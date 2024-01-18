@@ -197,7 +197,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                     .add("type", type);
         }
 
-        return null;
+        return templates.getInstanceOf("new_self");
     }
 
     @Override

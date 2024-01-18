@@ -220,3 +220,18 @@ la $a0 <type>_protObj
 jal Object.copy
 jal <type>_init
 >>
+
+new_self() ::= <<
+la     $t1 class_objTab
+lw      $t2 0($s0)          # class tag
+sll     $t2 $t2 3           # *8
+addu    $t1 $t1 $t2         # class_objTab + 8 * tag
+sw      $t1 0($sp)
+addiu   $sp $sp -4
+lw      $a0 0($t1)          # _protObj
+jal     Object.copy
+lw      $t1 4($sp)
+addiu   $sp $sp 4
+lw      $t1 4($t1)          # _init
+jalr    $t1
+>>
