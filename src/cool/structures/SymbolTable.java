@@ -2,6 +2,8 @@ package cool.structures;
 
 import java.io.File;
 import java.util.List;
+import java.util.TreeMap;
+
 import org.antlr.v4.runtime.*;
 
 import cool.compiler.Compiler;

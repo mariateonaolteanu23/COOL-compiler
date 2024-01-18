@@ -482,12 +482,35 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         classInitSignatureList.add("e", templates.getInstanceOf("classInitSignatureEntry").add("className", "Bool"));
         functionSignatureList.add("e", templates.getInstanceOf("functionSignatureEntry").add("className", "Main").add("funcName", "main"));
 
-        for (ASTNode cd: program.stmts) {
-            visitClassDefFirstPass((ClassDef) cd);
+        HashMap<ClassSymbol, ClassDef> mapClassSymbolToAstNode = new HashMap<>();
+        for (ASTNode node: program.stmts) {
+            ClassDef cd = (ClassDef) node;
+            mapClassSymbolToAstNode.put((ClassSymbol) SymbolTable.globals.lookup(cd.token.getText()), cd);
         }
 
-        for (ASTNode cd: program.stmts) {
-            visit((ClassDef) cd);
+        ArrayList<ClassSymbol> classesDfsOrder = new ArrayList<>();
+        //classesDfsOrder.addAll(List.of(ClassSymbol.OBJECT, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL, ClassSymbol.IO));
+
+        for (ASTNode node: program.stmts) {
+            ClassDef cd = (ClassDef) node;
+            ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(cd.token.getText());
+            if (!classesDfsOrder.contains(cs)) {
+                dfsOrder(classesDfsOrder, cs);
+            }
+        }
+
+        System.out.print("# classesDfsOrder: ");
+        for (ClassSymbol cs: classesDfsOrder) System.out.print(cs.getName() + " ");
+        System.out.println();
+
+        for (ClassSymbol cs: classesDfsOrder) {
+            ClassDef cd = mapClassSymbolToAstNode.get(cs);
+            visitClassDefFirstPass(cd);
+        }
+
+        for (ClassSymbol cs: classesDfsOrder) {
+            ClassDef cd = mapClassSymbolToAstNode.get(cs);
+            visit(cd);
         }
 
         programST.add("constString", constStringList);
@@ -528,6 +551,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     ///* prototype object-ul unei clase cu atribute gasite in ea si stramosii ei.
     ///* dispatch table-ul clasei cu metode ce le poate apela (din ea sau din stramosii ei).
     private void populateClassDispatchTable(ClassSymbol cs) {
+        ///TODO se garanteaza ca clasa tata (daca exista) a fost populata.
+
         ST classDispTabListEntry = templates.getInstanceOf("sequence");
 
         String ogClassName = cs.getName(), className = cs.getName();
@@ -674,5 +699,13 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             ctx = ctx.getParent();
 
         return new File(Compiler.fileNames.get(ctx)).getName();
+    }
+
+    private void dfsOrder(ArrayList<ClassSymbol> classesDfsOrder, ClassSymbol cs) {
+        classesDfsOrder.add(cs);
+
+        for (ClassSymbol child: cs.getClassChildren()) {
+            dfsOrder(classesDfsOrder, child);
+        }
     }
 }

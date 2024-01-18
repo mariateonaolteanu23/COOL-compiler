@@ -2,6 +2,9 @@ package cool.ast;
 import cool.parser.CoolParser;
 import cool.structures.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
 
     public Scope currentScope = SymbolTable.globals;
@@ -349,6 +352,4 @@ public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
         program.stmts.forEach(stmt -> stmt.accept(this));
         return null;
     }
-
-
 }

@@ -6,6 +6,8 @@ public class ClassSymbol extends IdSymbol implements Scope {
     protected Map<String, Symbol> functionSymbols = new LinkedHashMap<>();
     protected Map<String, Symbol> idSymbols = new LinkedHashMap<>();
     Scope parent;
+    ArrayList<ClassSymbol> classChildren = new ArrayList<>();
+
     public static final ClassSymbol OBJECT  = new ClassSymbol("Object", null);
     public static final ClassSymbol SELF_TYPE   = new ClassSymbol("SELF_TYPE", OBJECT);
     public static final ClassSymbol IO   = new ClassSymbol("IO", OBJECT);
@@ -15,7 +17,7 @@ public class ClassSymbol extends IdSymbol implements Scope {
 
     public ClassSymbol(String name, Scope parent) {
         super(name);
-        this.parent = parent;
+        setParent(parent);
     }
 
     @Override
@@ -84,6 +86,12 @@ public class ClassSymbol extends IdSymbol implements Scope {
 
     public void setParent(Scope parent) {
         this.parent = parent;
+
+        Scope s = parent;
+        while (s != null && !(s instanceof ClassSymbol)) s = s.getParent();
+
+        ///parent poate fi DefaultScope..
+        if (s != null) ((ClassSymbol) s).classChildren.add(this);
     }
 
     private LinkedHashSet<ClassSymbol> dfs(ClassSymbol s) {
@@ -127,5 +135,9 @@ public class ClassSymbol extends IdSymbol implements Scope {
 
     public Map<String, Symbol> getIdSymbols() {
         return idSymbols;
+    }
+
+    public ArrayList<ClassSymbol> getClassChildren() {
+        return classChildren;
     }
 }
