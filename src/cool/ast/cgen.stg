@@ -141,10 +141,6 @@ functionSignatureEntry(className, funcName) ::= <<
 .globl <className>.<funcName>
 >>
 
-
-
-
-
 functionPreamble(funcName, body, optionalResetStack) ::= <<
 <funcName>:
     addiu $sp $sp -12
@@ -195,17 +191,23 @@ self() ::= <<
 move $a0 $s0
 >>
 
-
-optionalResetStack(amount) ::= <<
+updateStackPointer(amount) ::= <<
+<if(amount)>
 addiu $sp $sp <amount>
+<endif>
 >>
 
-let(n, params, body, optionalResetStack) ::= <<
-<optionalResetStack(n)>
+let(n, params, body) ::= <<
+<if(n)>
+<updateStackPointer(neg(n))>
+<endif>
 <params>
 <body>
-<optionalResetStack>
+<if(n)>
+<updateStackPointer(n)>
+<endif>
 >>
+
 
 store(offset, reg) ::= <<
 sw $a0 <offset>(<reg>)
@@ -234,4 +236,8 @@ lw      $t1 4($sp)
 addiu   $sp $sp 4
 lw      $t1 4($t1)          # _init
 jalr    $t1
+>>
+
+neg(value) ::= <<
+-<value>
 >>

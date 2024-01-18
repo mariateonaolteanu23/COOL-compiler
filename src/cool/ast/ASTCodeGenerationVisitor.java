@@ -161,11 +161,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             index++;
         }
 
-        letAST.add("n", - let.locals.size() * 4);
+        letAST.add("n", let.locals.size() * 4);
         letAST.add("params", letParams);
         letAST.add("body", let.body.accept(this));
-        letAST.add("optionalResetStack", templates.getInstanceOf("optionalResetStack").
-                add("amount", let.locals.size() * 4));
         return letAST;
     }
 
@@ -369,6 +367,20 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(FuncDef funcDef) {
+
+        ST functionPreamble = templates.getInstanceOf("functionPreamble");
+
+        var className = ((ClassSymbol)funcDef.id.getScope()).getName();
+        var id = funcDef.getToken().getText();
+
+        functionPreamble.add("funcName",  className+ "." + id);
+        functionPreamble.add("body", funcDef.body.accept(this));
+        functionPreamble.add("optionalResetStack",
+                templates.getInstanceOf("updateStackPointer")
+                .add("amount", funcDef.formals.size() * 4));
+
+        functionInitBodyList.add("e", functionPreamble);
+
         return null;
     }
 
@@ -389,18 +401,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         populateClassPrototypeObject(cs);
         computeClassInit(cs, classDef.features.stream().filter(f -> f instanceof Attribute).collect(Collectors.toList()));
 
-        for (Feature f: classDef.features) {
-            if (f instanceof FuncDef) {
-                ST functionPreamble = templates.getInstanceOf("functionPreamble");
-
-                functionPreamble.add("funcName", cs.getName() + "." + f.token.getText());
-                functionPreamble.add("body", ((FuncDef) f).body.accept(this));
-                functionPreamble.add("optionalResetStack", templates.getInstanceOf("optionalResetStack")
-                        .add("amount", ((FuncDef) f).formals.size() * 4));
-
-                functionInitBodyList.add("e", functionPreamble);
-            }
-        }
+        classDef.features.stream().filter(f -> f instanceof FuncDef).forEach(f -> f.accept(this));
 
         return null;
     }
