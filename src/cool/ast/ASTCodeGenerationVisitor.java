@@ -311,6 +311,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         dispatch.add("label", dispatchCount);
         dispatchCount++;
 
+        dispatch.add("dispatchTableAddr", templates.getInstanceOf("dispatchTableAddr"));
+
         ///(eroare) numele fisierului.
         String file = getFileName(implicitDispatch.ctx);
         addConstString(file);
@@ -352,6 +354,15 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         dispatch.add("label", dispatchCount);
         dispatchCount++;
+
+        ST dispatchTableAddrST = templates.getInstanceOf("dispatchTableAddr");
+
+        if (explicitDispatch.type != null) {
+            dispatchTableAddrST.add("className", explicitDispatch.type.getToken().getText());
+        }
+
+        dispatch.add("dispatchTableAddr", dispatchTableAddrST);
+
 
         ///determin numele fisierului.
         String file = getFileName(explicitDispatch.ctx);

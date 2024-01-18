@@ -171,9 +171,17 @@ la   $a0 str_const<errFile>
 li   $t1 <errLine>
 jal  _dispatch_abort
 dispatch<label>:
-    lw  $t1 <dispatchTableAddr># dispatch table
+    <dispatchTableAddr> # dispatch table
     lw  $t1 <offset>($t1) # method offset
     jalr $t1
+>>
+
+dispatchTableAddr(className) ::= <<
+<if(className)>
+la $t1 <className>_dispTab
+<else>
+lw $t1 8($a0)
+<endif>
 >>
 
 param(e) ::= <<
