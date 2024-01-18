@@ -343,4 +343,5 @@ beqz $t1 label_while_end<label>
 <body>
 b label_while<label>
 label_while_end<label>:
+move $a0 $zero
 >>
