@@ -209,7 +209,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(BitComplement bitComplement) {
-        return null;
+
+        return templates.getInstanceOf("bitComplement")
+                .add("body", bitComplement.exp.accept(this));
     }
 
     @Override
@@ -263,22 +265,38 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Plus plus) {
-        return null;
+        ST plusST = templates.getInstanceOf("arithm");
+        plusST.add("e1", plus.left.accept(this));
+        plusST.add("e2", plus.right.accept(this));
+        plusST.add("op", "add");
+        return plusST;
     }
 
     @Override
     public ST visit(Minus minus) {
-        return null;
+        ST minusST = templates.getInstanceOf("arithm");
+        minusST.add("e1", minus.left.accept(this));
+        minusST.add("e2", minus.right.accept(this));
+        minusST.add("op", "sub");
+        return minusST;
     }
 
     @Override
     public ST visit(Mult mult) {
-        return null;
+        ST multST = templates.getInstanceOf("arithm");
+        multST.add("e1", mult.left.accept(this));
+        multST.add("e2", mult.right.accept(this));
+        multST.add("op", "mul");
+        return multST;
     }
 
     @Override
     public ST visit(Div div) {
-        return null;
+        ST divST = templates.getInstanceOf("arithm");
+        divST.add("e1", div.left.accept(this));
+        divST.add("e2", div.right.accept(this));
+        divST.add("op", "div");
+        return divST;
     }
 
     @Override

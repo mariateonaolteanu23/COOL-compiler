@@ -171,7 +171,7 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
         if (type == null)
             return null;
 
-        if (!type.getName().equals(ClassSymbol.BOOL.getName())) {
+        if (!type.getName().equals(ClassSymbol.INT.getName())) {
             SymbolTable.error(bitComplement.ctx,
                     ((CoolParser.BitComplementContext)bitComplement.ctx).e.start, "Operand of " +
                     bitComplement.token.getText() +
@@ -179,8 +179,7 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
             return null;
         }
 
-        return ClassSymbol.BOOL;
-
+        return ClassSymbol.INT;
     }
 
     @Override
