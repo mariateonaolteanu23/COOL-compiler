@@ -219,7 +219,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Isvoid isvoid) {
-        return null;
+        System.out.println("# isvoi");
+        ST isvoidST = templates.getInstanceOf("isvoid");
+        isvoidST.add("label", ifCount);
+        ifCount++;
+        isvoidST.add("body", isvoid.exp.accept(this));
+        return isvoidST;
     }
 
     @Override
@@ -424,7 +429,6 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     @Override
     public ST visit(ClassDef classDef) {
         classDef.features.stream().filter(f -> f instanceof FuncDef).forEach(f -> f.accept(this));
-
         return null;
     }
 

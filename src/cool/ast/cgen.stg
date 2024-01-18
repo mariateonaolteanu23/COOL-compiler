@@ -264,3 +264,13 @@ label_start_else<label_if>:
 
 label_fi<label_if>:
 >>
+
+isvoid(label, body) ::= <<
+<body>
+beqz $a0 label_isvoid_true<label>
+la $a0 bool_const0
+b label_isvoid_end<label>
+label_isvoid_true<label>:
+la $a0 bool_const1
+label_isvoid_end<label>:
+>>

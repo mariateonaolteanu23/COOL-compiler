@@ -11,7 +11,6 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
         if (scope == null)
             return null;
 
-
         id.setScope(getActualScopeForId(scope, id.getToken().getText()));
 
         var symbol = scope.lookupId(id.getToken().getText());
@@ -202,6 +201,7 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
     @Override
     public ClassSymbol visit(Isvoid isvoid) {
+        isvoid.exp.accept(this);
         return ClassSymbol.BOOL;
     }
 
