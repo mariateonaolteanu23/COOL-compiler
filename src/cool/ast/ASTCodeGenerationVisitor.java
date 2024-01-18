@@ -152,7 +152,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(While whilee) {
-        return null;
+        ST whileST = templates.getInstanceOf("while");
+        whileST.add("cond", whilee.cond.accept(this));
+        whileST.add("body", whilee.body.accept(this));
+        whileST.add("label", ifCount);
+        ifCount++;
+        return whileST;
     }
 
     @Override
@@ -260,7 +265,28 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Relational rel) {
-        return null;
+        String op = rel.getToken().getText();
+
+        if (op.equals("=")) {
+            ST eqST = templates.getInstanceOf("relationalEq");
+            eqST.add("e1", rel.left.accept(this));
+            eqST.add("e2", rel.right.accept(this));
+            eqST.add("label", ifCount);
+            ifCount++;
+            return  eqST;
+        }
+        ST relationalST = templates.getInstanceOf("relational");
+        relationalST.add("e1", rel.left.accept(this));
+        relationalST.add("e2", rel.right.accept(this));
+        if (op.equals("<=")) {
+            relationalST.add("op", "ble");
+        } else {
+            relationalST.add("op", "blt");
+        }
+
+        relationalST.add("label", ifCount);
+        ifCount++;
+        return relationalST;
     }
 
     @Override
