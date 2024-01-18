@@ -274,3 +274,14 @@ label_isvoid_true<label>:
 la $a0 bool_const1
 label_isvoid_end<label>:
 >>
+
+not(label, body) ::= <<
+<body>
+lw $t1 12($a0)
+beqz $t1 label_not<label>
+la $a0 bool_const0
+b label_not_end<label>
+label_not<label>:
+la $a0 bool_const1
+label_not_end<label>:
+>>

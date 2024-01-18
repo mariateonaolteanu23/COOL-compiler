@@ -214,16 +214,19 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Not not) {
-        return null;
+        ST notST = templates.getInstanceOf("not");
+        notST.add("body", not.exp.accept(this));
+        notST.add("label", ifCount);
+        ifCount++;
+        return notST;
     }
 
     @Override
     public ST visit(Isvoid isvoid) {
-        System.out.println("# isvoi");
         ST isvoidST = templates.getInstanceOf("isvoid");
+        isvoidST.add("body", isvoid.exp.accept(this));
         isvoidST.add("label", ifCount);
         ifCount++;
-        isvoidST.add("body", isvoid.exp.accept(this));
         return isvoidST;
     }
 
