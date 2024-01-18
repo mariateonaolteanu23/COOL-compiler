@@ -76,13 +76,14 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             return templates.getInstanceOf("self");
         }
 
+        ST load = templates.getInstanceOf("load").add("offset", getOffsetForId(id));
         if (id.getScope() instanceof ClassSymbol) {
             System.out.println("#2 " + "cs");
-            return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$s0");
+            return load.add("reg", "$s0");
         }
 
         System.out.println("#3 " + "oth");
-        return templates.getInstanceOf("attribute").add("offset", getOffsetForId(id)).add("reg", "$fp"); // merge si pt let
+        return load.add("reg", "$fp"); // merge si pt let
     }
 
     @Override
@@ -105,8 +106,29 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Local local) {
+        ST paramST = templates.getInstanceOf("letParam");
+        ST initST = templates.getInstanceOf("literal");
 
-        return null;
+
+        if (local.init == null) {
+            String value;
+            switch (local.id.getSymbol().getType().getName()) {
+                case "Int" -> value = "int_const0";
+                case "String" -> value = "str_const0";
+                case "Bool" -> value = "bool_const0";
+                default -> value = "0"; ///void pointer?
+            }
+
+            initST.add("value", value);
+            paramST.add("e", initST);
+        } else {
+            paramST.add("e",  local.init.accept(this));
+        }
+
+        paramST.add("offset", local.id.getSymbol().getOffset());
+
+
+        return paramST;
     }
 
     @Override
@@ -132,16 +154,18 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         var letParams  = templates.getInstanceOf("sequence");
 
-        var index = 0;
+        var index = 1;
         for (Local param : let.locals) {
-            letParams.add("e", evalLocal(param, index));
+            param.id.getSymbol().setOffset(- 4 * index);
+            letParams.add("e", param.accept(this));
             index++;
         }
 
         letAST.add("n", - let.locals.size() * 4);
         letAST.add("params", letParams);
         letAST.add("body", let.body.accept(this));
-        letAST.add("optionalResetStack", templates.getInstanceOf("optionalResetStack").add("amount", let.locals.size() * 4));
+        letAST.add("optionalResetStack", templates.getInstanceOf("optionalResetStack").
+                add("amount", let.locals.size() * 4));
         return letAST;
     }
 
@@ -167,6 +191,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(New neww) {
+        var type = neww.type.getToken().getText();
+        if (!type.equals("SELF_TYPE")) {
+            return templates.getInstanceOf("new")
+                    .add("type", type);
+        }
+
         return null;
     }
 
@@ -197,11 +227,15 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
         if (assign.id.getScope() instanceof ClassSymbol) {
             ///sw $a0 <offset>($s0). $s0 = adresa lui self (?) obiectul in care vreau sa scriu.
-            seq.add("e", "sw $a0 " + offset + "($s0)");
+            seq.add("e", templates.getInstanceOf("store")
+                    .add("offset", offset)
+                    .add("reg", "$s0"));
         } else {
             ///FunctionSymbol? (TODO let).
             //System.out.println("# " + ((FunctionSymbol)assign.id.getScope()).getLocalSymbols() + " " + offset);
-            seq.add("e", "sw $a0 " + offset + "($fp)");
+            seq.add("e", templates.getInstanceOf("store")
+                    .add("offset", offset)
+                    .add("reg", "$fp"));
         }
 
         return seq;
@@ -633,33 +667,5 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             ctx = ctx.getParent();
 
         return new File(Compiler.fileNames.get(ctx)).getName();
-    }
-
-    private ST evalLocal(Local local, int index) {
-        ST paramST = templates.getInstanceOf("letParam");
-        ST initST = templates.getInstanceOf("literal");
-
-
-        if (local.init == null) {
-            String value;
-            switch (local.id.getSymbol().getType().getName()) {
-                case "Int" -> value = "int_const0";
-                case "String" -> value = "str_const0";
-                case "Bool" -> value = "bool_const0";
-                default -> value = "0"; ///void pointer?
-            }
-
-            initST.add("value", value); // trb pt toate tipurile default
-            paramST.add("e", initST);
-        } else {
-            paramST.add("e",  local.init.accept(this));
-        }
-
-
-        int offset = getOffsetForId(local.id) - (index + 1) * 4;
-        paramST.add("offset", offset);
-        local.id.getSymbol().setOffset(offset);
-
-        return paramST;
     }
 }

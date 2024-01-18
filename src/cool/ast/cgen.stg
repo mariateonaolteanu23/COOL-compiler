@@ -162,8 +162,6 @@ functionPreamble(funcName, body, optionalResetStack) ::= <<
     jr $ra
 >>
 
-
-
 literal(value) ::= <<
 la $a0 <value>
 >>
@@ -197,9 +195,6 @@ self() ::= <<
 move $a0 $s0
 >>
 
-attribute(offset, reg) ::= <<
-lw $a0 <offset>(<reg>) #TODO mod s0
->>
 
 optionalResetStack(amount) ::= <<
 addiu $sp $sp <amount>
@@ -210,4 +205,18 @@ let(n, params, body, optionalResetStack) ::= <<
 <params>
 <body>
 <optionalResetStack>
+>>
+
+store(offset, reg) ::= <<
+sw $a0 <offset>(<reg>)
+>>
+
+load(offset, reg) ::= <<
+lw $a0 <offset>(<reg>) #TODO mod s0
+>>
+
+new(type) ::= <<
+la $a0 <type>_protObj
+jal Object.copy
+jal <type>_init
 >>
