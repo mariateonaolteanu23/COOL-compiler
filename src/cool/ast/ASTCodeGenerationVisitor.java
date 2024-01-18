@@ -40,7 +40,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     ST classInitBodyList;
     ST functionInitBodyList;
 
-    int dispatchCount = 0;
+    int dispatchCount = 0, ifCount = 0;
 
     private int getOffsetForId(Id id) {
         int offset = 0;
@@ -138,7 +138,16 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(If iff) {
-        return null;
+        ST ifST = templates.getInstanceOf("if");
+
+        ifST.add("label_if", ifCount);
+        ifCount++;
+
+        ifST.add("cond", iff.cond.accept(this));
+        ifST.add("then_body", iff.thenBranch.accept(this));
+        ifST.add("else_body", iff.elseBranch.accept(this));
+
+        return ifST;
     }
 
     @Override
