@@ -162,7 +162,7 @@ literal(value) ::= <<
 la $a0 <value>
 >>
 
-dispatch(funcParams, label, errFile, errLine, offset, caller, objectResolution) ::= <<
+dispatch(funcParams, label, errFile, errLine, offset, caller, objectResolution, dispatchTableAddr) ::= <<
 <funcParams>
 <objectResolution> #f(x).g(y) = explicit dispatch cu obj f(x), id g si arg y. tb rezolvat intai f(x).
 <caller> #pe cine dereferentiez. pentru implicit e self (a0 = s0). pentru explicit e adresa class_protObj.
@@ -171,7 +171,7 @@ la   $a0 str_const<errFile>
 li   $t1 <errLine>
 jal  _dispatch_abort
 dispatch<label>:
-    lw  $t1 8($a0) # dispatch table
+    lw  $t1 <dispatchTableAddr># dispatch table
     lw  $t1 <offset>($t1) # method offset
     jalr $t1
 >>
