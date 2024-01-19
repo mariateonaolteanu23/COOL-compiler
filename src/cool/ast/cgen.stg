@@ -3,7 +3,8 @@ sequenceSpaced(e) ::= "<e; separator=\"\n\n\">"
 
 program(constString, constInt, constBool,
         className, classObjTab, classProtObj, classDispTab,
-        classInitSignature, functionSignature, classInitBody, functionInitBody) ::= <<
+        classInitSignature, functionSignature, classInitBody, functionInitBody,
+        int_tag, string_tag, bool_tag) ::= <<
 .data
 
 .align 2
@@ -18,11 +19,11 @@ program(constString, constInt, constBool,
 .globl _bool_tag
 
 _int_tag:
-    .word 2
+    .word <int_tag>
 _string_tag:
-    .word 3
+    .word <string_tag>
 _bool_tag:
-    .word 4
+    .word <bool_tag>
 
 #lista de strConstEntry.
 <constString>
@@ -68,9 +69,9 @@ heap_start:
 
 
 
-constStringEntry(index, size, indexLengthConstInt, value) ::= <<
+constStringEntry(tag, index, size, indexLengthConstInt, value) ::= <<
 str_const<index>:
-    .word 3
+    .word <tag>
     .word <size>
     .word String_dispTab
     .word int_const<indexLengthConstInt>
@@ -78,21 +79,22 @@ str_const<index>:
     .align 2
 >>
 
-constIntEntry(index, value) ::= <<
+constIntEntry(tag, index, value) ::= <<
 int_const<index>:
-    .word 2
+    .word <tag>
     .word 4
     .word Int_dispTab
     .word <value>
 >>
 
-constBoolEntry(index, value) ::= <<
+constBoolEntry(tag, index, value) ::= <<
 bool_const<index>:
-    .word 4
+    .word <tag>
     .word 4
     .word Bool_dispTab
     .word <value>
 >>
+
 
 
 
@@ -346,11 +348,26 @@ label_while_end<label>:
 move $a0 $zero
 >>
 
-case(label, errFile, errLine, evalInit) ::= <<
+
+case(label, errFile, errLine, evalInit, body) ::= <<
 <evalInit>
 bnez $a0 case_start<label> # case eval NULL.
 la $a0 str_const<errFile>
 li $t1 <errLine>
 jal _case_abort2
 case_start<label>:
+sw $a0 -4($fp) # backup in s0.
+lw $t1 0($a0)  # class tag.
+<body>
+lw $a0 -4($fp)
+jal _case_abort
+case_end<label>:
+>>
+
+case_branch(mainLabel, branchLabel, tin, tout, var, body) ::= <<
+blt $t1 <tin> casebranch<branchLabel>
+bgt $t1 <tout> casebranch<branchLabel>
+<body>
+b case_end<mainLabel>
+casebranch<branchLabel>:
 >>
