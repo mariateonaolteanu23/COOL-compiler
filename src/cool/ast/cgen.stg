@@ -97,6 +97,7 @@ bool_const<index>:
 
 
 
+
 classNameEntry(classNameIndex) ::= <<
     .word str_const<classNameIndex>
 >>
@@ -148,11 +149,11 @@ functionPreamble(funcName, body, optionalResetStack) ::= <<
     addiu $fp $sp 4
     move $s0 $a0
     <body>
-    <optionalResetStack>
     lw $fp 12($sp)
     lw $s0 8($sp)
     lw $ra 4($sp)
     addiu $sp $sp 12
+    <optionalResetStack>
     jr $ra
 >>
 
@@ -347,6 +348,7 @@ label_while_end<label>:
 move $a0 $zero
 >>
 
+
 case(label, errFile, errLine, evalInit, body) ::= <<
 <evalInit>
 bnez $a0 case_start<label> # case eval NULL.
@@ -357,10 +359,12 @@ case_start<label>:
 sw $a0 -4($fp) # backup in s0.
 lw $t1 0($a0)  # class tag.
 <body>
+lw $a0 -4($fp)
+jal _case_abort
 case_end<label>:
 >>
 
-case_branch(mainLabel, branchLabel, tin, tout, body) ::= <<
+case_branch(mainLabel, branchLabel, tin, tout, var, body) ::= <<
 blt $t1 <tin> casebranch<branchLabel>
 bgt $t1 <tout> casebranch<branchLabel>
 <body>

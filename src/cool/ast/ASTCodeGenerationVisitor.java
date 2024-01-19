@@ -222,7 +222,8 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         ST caseBranchesSeq = templates.getInstanceOf("sequence");
 
         for (CaseBranch cb: casee.branches) {
-            caseBranchesSeq.add("e", visit(cb));
+            cb.id.getSymbol().setOffset(-4);
+            caseBranchesSeq.add("e", cb.accept(this));
         }
 
         caseST.add("body", caseBranchesSeq);
@@ -493,7 +494,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         functionPreamble.add("body", funcDef.body.accept(this));
         functionPreamble.add("optionalResetStack",
                 templates.getInstanceOf("updateStackPointer")
-                .add("amount", funcDef.formals.size() * 4));
+                        .add("amount", funcDef.formals.size() * 4));
 
         functionInitBodyList.add("e", functionPreamble);
 
@@ -689,7 +690,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                     .add("className", entry.getValue().first.getName())
                     .add("funcName", entry.getKey()));
         }
-        
+
         ST classDispTabEntry = templates.getInstanceOf("classDispTabEntry");
         classDispTabEntry.add("className", cs.getName());
         classDispTabEntry.add("functionPointer", classDispTabListEntry);
