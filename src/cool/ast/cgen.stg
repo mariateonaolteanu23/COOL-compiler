@@ -163,8 +163,8 @@ la $a0 <value>
 
 dispatch(funcParams, label, errFile, errLine, offset, caller, objectResolution, dispatchTableAddr) ::= <<
 <funcParams>
-<objectResolution> #f(x).g(y) = explicit dispatch cu obj f(x), id g si arg y. tb rezolvat intai f(x).
-<caller> #pe cine dereferentiez. pentru implicit e self (a0 = s0). pentru explicit e adresa class_protObj.
+<objectResolution>
+<caller>
 bnez $a0 dispatch<label>
 la   $a0 str_const<errFile>
 li   $t1 <errLine>
@@ -358,10 +358,12 @@ jal _case_abort2
 case_start<label>:
 sw $a0 -4($fp) # backup in s0.
 lw $t1 0($a0)  # class tag.
+addiu $sp $sp -4
 <body>
 lw $a0 -4($fp)
 jal _case_abort
 case_end<label>:
+addiu $sp $sp 4
 >>
 
 case_branch(mainLabel, branchLabel, tin, tout, var, body) ::= <<
