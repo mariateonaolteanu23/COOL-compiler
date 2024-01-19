@@ -167,7 +167,7 @@ public class ASTConstructionVisitor extends CoolParserBaseVisitor<ASTNode> {
     public ASTNode visitCase(CoolParser.CaseContext ctx) {
         return new Case((Expression) visit(ctx.e),
                 ctx.cases.stream().map(c -> (CaseBranch)visit(c)).collect(Collectors.toList()),
-                ctx.CASE().getSymbol());
+                ctx.CASE().getSymbol(), ctx);
     }
 
     @Override

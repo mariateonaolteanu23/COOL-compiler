@@ -327,12 +327,13 @@ class CaseBranch extends ASTNode {
 class Case extends Expression {
     Expression exp;
     List<CaseBranch> branches;
+    ParserRuleContext ctx;
 
-
-    Case(Expression exp, List<CaseBranch> branches, Token start) {
+    Case(Expression exp, List<CaseBranch> branches, Token start, ParserRuleContext ctx) {
         super(start);
         this.exp = exp;
         this.branches = branches;
+        this.ctx = ctx;
     }
 
     public <T> T accept(ASTVisitor<T> visitor) {

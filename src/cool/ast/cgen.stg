@@ -345,3 +345,12 @@ b label_while<label>
 label_while_end<label>:
 move $a0 $zero
 >>
+
+case(label, errFile, errLine, evalInit) ::= <<
+<evalInit>
+bnez $a0 case_start<label> # case eval NULL.
+la $a0 str_const<errFile>
+li $t1 <errLine>
+jal _case_abort2
+case_start<label>:
+>>

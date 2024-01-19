@@ -45,7 +45,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     private int getOffsetForId(Id id) {
         int offset = 0;
 
-        var scope  = id.getScope();
+        Scope scope = id.getScope();
 
         if (scope instanceof ClassSymbol) {
             String currentClass = id.getScope().lookupClass().getName();
@@ -183,7 +183,25 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Case casee) {
-        return null;
+        ///TODO Scope-ul lui Case este de tip DefaultScope?
+        ST caseST = templates.getInstanceOf("case");
+
+        caseST.add("label", ifCount);
+        ifCount++;
+
+        ///(eroare) numele fisierului.
+        String file = getFileName(casee.ctx);
+        addConstString(file);
+        caseST.add("errFile", constStringHt.get(file));
+
+        ///(eroare) linia din fisier.
+        int line = casee.token.getLine();
+        caseST.add("errLine", Integer.toString(line));
+
+        System.out.println("# inb4 getId pentru case");
+        caseST.add("evalInit", casee.exp.accept(this));
+
+        return caseST;
     }
 
     @Override

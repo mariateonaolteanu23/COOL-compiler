@@ -122,6 +122,8 @@ public class ASTResolutionPassVisitor implements ASTVisitor<ClassSymbol> {
 
     @Override
     public ClassSymbol visit(Case casee) {
+        casee.exp.accept(this);
+
         var index = 0;
         var size = casee.branches.size();
         var type = casee.branches.get(index).accept(this);

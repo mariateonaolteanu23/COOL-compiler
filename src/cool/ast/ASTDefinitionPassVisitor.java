@@ -109,6 +109,8 @@ public class ASTDefinitionPassVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(Case casee) {
+        casee.exp.accept(this);
+
         for (CaseBranch branch : casee.branches) {
             var scope = new DefaultScope(currentScope);
             currentScope = scope;
