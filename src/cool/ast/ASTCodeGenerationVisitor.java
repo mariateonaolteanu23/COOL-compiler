@@ -40,7 +40,9 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     ST classInitBodyList;
     ST functionInitBodyList;
 
-    int dispatchCount = 0, ifCount = 0;
+    int dispatchCount = 0, ifCount = 0, caseCount = 0, timeDfsCounter = 0;
+
+    HashMap<ClassSymbol, CGHelp.Pair<Integer, Integer>> classTinToutHt;
 
     private int getOffsetForId(Id id) {
         int offset = 0;
@@ -133,7 +135,18 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(CaseBranch caseBranch) {
-        return null;
+        ST branch = templates.getInstanceOf("case_branch");
+
+        branch.add("body", caseBranch.exp.accept(this));
+        branch.add("mainLabel", caseCount);
+
+        branch.add("branchLabel", ifCount);
+        ifCount++;
+
+        branch.add("tin", classTinToutHt.get(caseBranch.id.getSymbol().getType()).first);
+        branch.add("tout", classTinToutHt.get(caseBranch.id.getSymbol().getType()).second - 1);
+
+        return branch;
     }
 
     @Override
@@ -183,11 +196,10 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
 
     @Override
     public ST visit(Case casee) {
-        ///TODO Scope-ul lui Case este de tip DefaultScope?
         ST caseST = templates.getInstanceOf("case");
 
-        caseST.add("label", ifCount);
-        ifCount++;
+        caseCount++;
+        caseST.add("label", caseCount);
 
         ///(eroare) numele fisierului.
         String file = getFileName(casee.ctx);
@@ -198,8 +210,22 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         int line = casee.token.getLine();
         caseST.add("errLine", Integer.toString(line));
 
-        System.out.println("# inb4 getId pentru case");
         caseST.add("evalInit", casee.exp.accept(this));
+
+        casee.branches.sort((a, b) -> {
+            ClassSymbol csa = a.id.getSymbol().getType();
+            ClassSymbol csb = b.id.getSymbol().getType();
+
+            return classObjTabHt.get(csb.getName()).compareTo(classObjTabHt.get(csa.getName()));
+        });
+
+        ST caseBranchesSeq = templates.getInstanceOf("sequence");
+
+        for (CaseBranch cb: casee.branches) {
+            caseBranchesSeq.add("e", visit(cb));
+        }
+
+        caseST.add("body", caseBranchesSeq);
 
         return caseST;
     }
@@ -474,16 +500,46 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         return null;
     }
 
+    private void visitBaseClass(ClassSymbol baseClassSymbol) {
+        String baseClassName = baseClassSymbol.getName();
+
+        addConstString(baseClassName);
+        classNameList.add("e", templates.getInstanceOf("classNameEntry")
+                .add("classNameIndex", constStringHt.get(baseClassName).toString()));
+        classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
+                .add("className", baseClassName));
+
+        ///folosesc classObjTabHt si pentru <class>_protObj.
+        int size = 0;
+        String features = "";
+
+        switch (baseClassName) {
+            case "Object" -> size = 3;
+            case "IO" -> size = 3;
+            case "String" -> { size = 5; features = ".word int_const0\n.asciiz \"\"\n.align 2\n"; }
+            case "Int", "Bool" -> { size = 4; features = ".word 0\n"; }
+            default -> {}
+        }
+
+        classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
+                .add("className", baseClassName)
+                .add("classTag", classObjTabHt.get(baseClassName).toString())
+                .add("size", ((Integer) size).toString())
+                .add("features", features)
+        );
+
+        populateClassDispatchTable(baseClassSymbol);
+        computeClassInit(baseClassSymbol, List.of());
+    }
+
     private void visitClassDefFirstPass(ClassDef classDef) {
         String className = classDef.token.getText();
-        addConstString(className);
 
+        addConstString(className);
         classNameList.add("e", templates.getInstanceOf("classNameEntry")
                 .add("classNameIndex", constStringHt.get(className).toString()));
-
         classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
                 .add("className", className));
-        classObjTabHt.put(className, classObjTabHt.size());
 
         ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(className);
         populateClassDispatchTable(cs);
@@ -519,50 +575,12 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         classDispTabList = templates.getInstanceOf("sequence");
         classDispTabHt = new HashMap<>();
 
+        classTinToutHt = new HashMap<>();
+
         classInitSignatureList = templates.getInstanceOf("sequence");
         functionSignatureList = templates.getInstanceOf("sequence");
         classInitBodyList = templates.getInstanceOf("sequence");
         functionInitBodyList = templates.getInstanceOf("sequence");
-
-        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "0").add("value", "0"));
-        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "1").add("value", "1"));
-        programST.add("constBool", constBoolList);
-
-        addConstString("");
-        for (ClassSymbol baseClassSymbol: List.of(ClassSymbol.OBJECT, ClassSymbol.IO, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL)) {
-            String baseClassName = baseClassSymbol.getName();
-
-            addConstString(baseClassName);
-
-            classNameList.add("e", templates.getInstanceOf("classNameEntry")
-                    .add("classNameIndex", constStringHt.get(baseClassName).toString()));
-
-            classObjTabList.add("e", templates.getInstanceOf("classObjTabEntry")
-                    .add("className", baseClassName));
-            classObjTabHt.put(baseClassName, classObjTabHt.size());
-
-            ///folosesc classObjTabHt si pentru <class>_protObj.
-            int size = 0;
-            String features = "";
-
-            switch (baseClassName) {
-                case "Object" -> size = 3;
-                case "IO" -> size = 3;
-                case "String" -> { size = 5; features = ".word int_const0\n.asciiz \"\"\n.align 2\n"; }
-                case "Int", "Bool" -> { size = 4; features = ".word 0\n"; }
-                default -> {}
-            }
-
-            classProtObjList.add("e", templates.getInstanceOf("classProtObjEntry")
-                    .add("className", baseClassName)
-                    .add("classTag", classObjTabHt.get(baseClassName).toString())
-                    .add("size", ((Integer) size).toString())
-                    .add("features", features)
-            );
-
-            populateClassDispatchTable(baseClassSymbol);
-            computeClassInit(baseClassSymbol, List.of());
-        }
 
         ///dintr-un motiv, clasele default care pot mosteni nu sunt aici.
         ///TODO mai sunt si alte lucruri la classInitSignature si functionSignature?
@@ -577,28 +595,33 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
             mapClassSymbolToAstNode.put((ClassSymbol) SymbolTable.globals.lookup(cd.token.getText()), cd);
         }
 
-        ///NU include: ClassSymbol.OBJECT, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL, ClassSymbol.IO.
+        List<ClassSymbol> defaultClassSymbols = List.of(ClassSymbol.OBJECT, ClassSymbol.INT, ClassSymbol.STRING, ClassSymbol.BOOL, ClassSymbol.IO);
         ArrayList<ClassSymbol> classesDfsOrder = new ArrayList<>();
 
-        for (ASTNode node: program.stmts) {
-            ClassDef cd = (ClassDef) node;
-            ClassSymbol cs = (ClassSymbol) SymbolTable.globals.lookup(cd.token.getText());
-            if (!classesDfsOrder.contains(cs)) {
-                dfsOrder(classesDfsOrder, cs);
-            }
-        }
+        dfsOrder(classesDfsOrder, ClassSymbol.OBJECT);
+        addConstString("");
 
         System.out.print("# classesDfsOrder: ");
         for (ClassSymbol cs: classesDfsOrder) System.out.print(cs.getName() + " ");
         System.out.println();
 
         for (ClassSymbol cs: classesDfsOrder) {
-            visitClassDefFirstPass(mapClassSymbolToAstNode.get(cs));
+            if (defaultClassSymbols.contains(cs)) visitBaseClass(cs);
+            else visitClassDefFirstPass(mapClassSymbolToAstNode.get(cs));
         }
 
         for (ClassSymbol cs: classesDfsOrder) {
+            if (defaultClassSymbols.contains(cs)) continue;
             visit(mapClassSymbolToAstNode.get(cs));
         }
+
+        programST.add("int_tag", classObjTabHt.get("Int"));
+        programST.add("string_tag", classObjTabHt.get("String"));
+
+        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "0").add("value", "0").add("tag", classObjTabHt.get("Bool")));
+        constBoolList.add("e", templates.getInstanceOf("constBoolEntry").add("index", "1").add("value", "1").add("tag", classObjTabHt.get("Bool")));
+        programST.add("constBool", constBoolList);
+        programST.add("bool_tag", classObjTabHt.get("Bool"));
 
         programST.add("constString", constStringList);
         programST.add("className", classNameList);
@@ -611,7 +634,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
         programST.add("functionInitBody", functionInitBodyList);
 
         for (Integer k: constIntSet) { ///TODO constante negative?
-            constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()));
+            constIntList.add("e", templates.getInstanceOf("constIntEntry").add("index", k.toString()).add("value", k.toString()).add("tag", classObjTabHt.get("Int")));
         }
         programST.add("constInt", constIntList);
 
@@ -628,6 +651,7 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
                 .add("size", ((Integer) labelSize).toString())
                 .add("indexLengthConstInt", s.length())
                 .add("value", s)
+                .add("tag", classObjTabHt.get("String"))
         );
 
         constStringHt.put(s, constStringHt.size());
@@ -788,10 +812,19 @@ public class ASTCodeGenerationVisitor implements ASTVisitor<ST> {
     }
 
     private void dfsOrder(ArrayList<ClassSymbol> classesDfsOrder, ClassSymbol cs) {
+        if (cs == ClassSymbol.SELF_TYPE) return;
+        if (classesDfsOrder.contains(cs)) return;
+
+        classObjTabHt.put(cs.getName(), classObjTabHt.size());
         classesDfsOrder.add(cs);
+
+        classTinToutHt.put(cs, new CGHelp.Pair<>(timeDfsCounter, 0));
+        timeDfsCounter++;
 
         for (ClassSymbol child: cs.getClassChildren()) {
             dfsOrder(classesDfsOrder, child);
         }
+
+        classTinToutHt.put(cs, new CGHelp.Pair<>(classTinToutHt.get(cs).first, timeDfsCounter));
     }
 }
